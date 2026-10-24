@@ -12,14 +12,27 @@ public sealed class AppServices : IDisposable
 
     public SettingsStore Settings { get; } = new();
 
-    private readonly Lazy<(AsusLaptop? Laptop, AsusDetection Detection)> _asus = new(AsusLaptop.Detect);
+    private (AsusLaptop? Laptop, AsusDetection Detection)? _asus;
     private readonly Lazy<IReadOnlyList<IGpuColorControl>> _gpu = new(GpuColorControls.LoadAll);
 
+    private (AsusLaptop? Laptop, AsusDetection Detection) AsusState => _asus ??= AsusLaptop.Detect();
+
     /// <summary>Null on machines without the ASUS ATKACPI driver.</summary>
-    public AsusLaptop? Asus => _asus.Value.Laptop;
+    public AsusLaptop? Asus => AsusState.Laptop;
 
     /// <summary>What was found when looking for the ASUS driver (shown when <see cref="Asus"/> is null).</summary>
-    public AsusDetection AsusDetection => _asus.Value.Detection;
+    public AsusDetection AsusDetection => AsusState.Detection;
+
+    /// <summary>Set when the driver opened but building the ASUS page failed.</summary>
+    public string? AsusLoadError { get; set; }
+
+    /// <summary>Closes and re-opens the ASUS driver.</summary>
+    public void ReloadAsus()
+    {
+        _asus?.Laptop?.Dispose();
+        _asus = null;
+        AsusLoadError = null;
+    }
 
     public IReadOnlyList<IGpuColorControl> GpuColor => _gpu.Value;
 
@@ -51,7 +64,7 @@ public sealed class AppServices : IDisposable
 
     public void Dispose()
     {
-        if (_asus.IsValueCreated) _asus.Value.Laptop?.Dispose();
+        _asus?.Laptop?.Dispose();
         if (_gpu.IsValueCreated)
             foreach (var g in _gpu.Value) g.Dispose();
     }

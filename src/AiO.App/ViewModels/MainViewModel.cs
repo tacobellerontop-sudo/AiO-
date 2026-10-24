@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using AiO.App.Infrastructure;
 
@@ -19,22 +20,15 @@ public sealed class MainViewModel : ObservableObject
     private string _status = "";
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(8) };
 
-    public IReadOnlyList<NavItem> Pages { get; }
+    public ObservableCollection<NavItem> Pages { get; }
 
-    public AsusViewModel? Asus { get; }
+    public AsusViewModel? Asus { get; private set; }
 
     public const string AsusPageTitle = "ASUS · G-Helper";
 
     public MainViewModel()
     {
-        try
-        {
-            if (AppServices.Instance.Asus is { } asus) Asus = new AsusViewModel(asus);
-        }
-        catch (Exception ex)
-        {
-            AppServices.Instance.Report($"ASUS controls unavailable: {ex.Message}");
-        }
+        LoadAsus();
 
         // Segoe Fluent Icons / MDL2 glyphs.
         var pages = new List<NavItem>
@@ -44,11 +38,9 @@ public sealed class MainViewModel : ObservableObject
             new("Razer & RGB", "\uE962", () => new Views.RazerPage { DataContext = new RazerViewModel() }),
         };
         // Always listed so it's discoverable; explains itself when the laptop isn't supported.
-        pages.Add(Asus is not null
-            ? new(AsusPageTitle, "\uE7F8", () => new Views.AsusPage { DataContext = Asus })
-            : new(AsusPageTitle, "\uE7F8", () => new Views.AsusUnavailablePage { DataContext = new AsusUnavailableViewModel() }));
+        pages.Add(CreateAsusPage());
         pages.Add(new("Settings", "\uE713", () => new Views.SettingsPage { DataContext = new SettingsViewModel() }));
-        Pages = pages;
+        Pages = new ObservableCollection<NavItem>(pages);
         _selected = Pages[0];
 
         _statusTimer.Tick += (_, _) => { Status = ""; _statusTimer.Stop(); };
@@ -69,6 +61,40 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string Status { get => _status; private set => Set(ref _status, value); }
+
+    private void LoadAsus()
+    {
+        var services = AppServices.Instance;
+        try
+        {
+            if (services.Asus is { } asus) Asus = new AsusViewModel(asus);
+        }
+        catch (Exception ex)
+        {
+            Asus = null;
+            services.AsusLoadError = $"{ex.GetType().Name}: {ex.Message}";
+            services.Report($"ASUS controls failed to load: {ex.Message}");
+        }
+    }
+
+    private NavItem CreateAsusPage() => Asus is { } asus
+        ? new(AsusPageTitle, "\uE7F8", () => new Views.AsusPage { DataContext = asus })
+        : new(AsusPageTitle, "\uE7F8", () => new Views.AsusUnavailablePage { DataContext = new AsusUnavailableViewModel(ReloadAsus) });
+
+    /// <summary>Re-detects the ASUS driver and rebuilds the ASUS page in place (no app restart).</summary>
+    public void ReloadAsus()
+    {
+        Asus?.StopSensors();
+        Asus = null;
+        AppServices.Instance.ReloadAsus();
+        LoadAsus();
+
+        int index = Pages.ToList().FindIndex(p => p.Title == AsusPageTitle);
+        var page = CreateAsusPage();
+        Pages[index] = page;
+        SelectedPage = page;
+        if (Asus is not null) AppServices.Instance.Report("ASUS controls loaded.");
+    }
 
     private void ShowStatus(string message)
     {

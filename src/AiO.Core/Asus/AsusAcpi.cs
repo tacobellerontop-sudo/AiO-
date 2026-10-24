@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using AiO.Core.Native;
 using Microsoft.Win32.SafeHandles;
@@ -44,9 +43,11 @@ public sealed class AsusAcpi : IDisposable
         var output = new byte[16];
         lock (_lock)
         {
-            if (!Kernel32.DeviceIoControl(_handle, AsusAcpiProtocol.IoControlCode, input, (uint)input.Length,
-                    output, (uint)output.Length, out _, IntPtr.Zero))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "ATKACPI call failed");
+            // The driver reports failure for some device ids even though the call itself is fine
+            // (G-Helper ignores the return value too). The firmware's answer is in the output buffer:
+            // an all-zero buffer decodes as "unsupported" for reads and "not OK" for writes.
+            Kernel32.DeviceIoControl(_handle, AsusAcpiProtocol.IoControlCode, input, (uint)input.Length,
+                output, (uint)output.Length, out _, IntPtr.Zero);
         }
         return output;
     }
@@ -71,8 +72,7 @@ public sealed class AsusAcpi : IDisposable
         {
             if (!_supported.TryGetValue(deviceId, out bool supported))
             {
-                try { supported = Get(deviceId) >= 0; }
-                catch (Win32Exception) { supported = false; }
+                supported = Get(deviceId) >= 0;
                 _supported[deviceId] = supported;
             }
             return supported;

@@ -10,11 +10,10 @@
             <StackPanel>
                 <TextBlock Text="Controls not available on this PC" Style="{StaticResource CardTitle}" />
                 <TextBlock Text="{Binding Machine}" Style="{StaticResource Muted}" Margin="0,0,0,12" />
-                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,0,0,16" />
+                <TextBox Text="{Binding Message, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"
+                         Background="Transparent" Padding="0" Margin="0,0,0,16" />
                 <WrapPanel>
                     <Button Content="Check again" Command="{Binding CheckAgainCommand}" Margin="0,0,8,8" />
-                    <Button Content="Restart AiO" Style="{StaticResource AccentButton}" Command="{Binding RestartAppCommand}" Margin="0,0,8,8"
-                            Visibility="{Binding FoundNow, Converter={StaticResource Visible}}" />
                     <Button Content="Restart as administrator" Command="{Binding RestartAsAdminCommand}" Margin="0,0,8,8"
                             Visibility="{Binding CanElevate, Converter={StaticResource Visible}}" />
                     <Button Content="ASUS driver downloads" Command="{Binding OpenSupportCommand}" Margin="0,0,8,8"

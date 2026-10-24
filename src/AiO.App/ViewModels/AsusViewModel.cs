@@ -28,11 +28,12 @@ public sealed class AsusViewModel : ObservableObject
     public AsusViewModel(AsusLaptop asus)
     {
         _asus = asus;
-        _gpuMode = asus.GetGpuMode();
+        // Probe each feature separately: one the laptop lacks must not take the whole page down.
+        _gpuMode = Probe(asus.GetGpuMode, null);
         _batteryLimit = Saved.BatteryLimit;
-        _overdrive = asus.GetOverdrive();
+        _overdrive = Probe(asus.GetOverdrive, null);
         _editingMode = Saved.PerformanceMode;
-        AuraAvailable = AsusAura.IsAvailable();
+        AuraAvailable = Probe(AsusAura.IsAvailable, false);
 
         _sensorTimer.Tick += (_, _) => ReadSensors();
 
@@ -45,6 +46,12 @@ public sealed class AsusViewModel : ObservableObject
         ApplyKeyboardCommand = new RelayCommand(ApplyKeyboard);
 
         LoadEditingProfile();
+    }
+
+    private static T Probe<T>(Func<T> read, T fallback)
+    {
+        try { return read(); }
+        catch { return fallback; }
     }
 
     public void StartSensors()
