@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <c:PageHeader Glyph="&#xEA80;" Title="Razer &amp; RGB"
-                      Subtitle="AiO talks to Razer devices directly (the protocol documented by OpenRazer), so Synapse isn't needed. Close Synapse first; both fighting over the device gives odd results. For lighting on any brand, connect to OpenRGB below.">
+        <c:PageHeader Glyph="&#xEA80;" Title="Razer"
+                      Subtitle="AiO talks to Razer devices directly (the protocol documented by OpenRazer), so Synapse isn't needed. Quit Synapse first: two programs sending commands to the same device conflict.">
             <Button Content="Scan again" Command="{Binding ScanCommand}" />
         </c:PageHeader>
 
@@ -24,6 +24,7 @@
 
                             <!-- Sensor -->
                             <StackPanel Visibility="{Binding IsMouse, Converter={StaticResource Visible}}" Margin="0,0,0,10">
+                                <TextBlock Text="Sensor" FontWeight="SemiBold" Margin="0,0,0,6" />
                                 <c:SliderRow Label="DPI" Minimum="100" Maximum="30000" Step="50" Value="{Binding Dpi}" />
                                 <StackPanel Orientation="Horizontal" Margin="150,4,0,8">
                                     <Button Content="400" Command="{Binding SetDpiPresetCommand}" CommandParameter="400" Margin="0,0,6,0" />
@@ -36,6 +37,39 @@
                                     <TextBlock Text="Polling rate" Style="{StaticResource Label}" Width="150" />
                                     <ComboBox ItemsSource="{Binding PollingRates}" SelectedItem="{Binding PollingRate}" Width="120" ItemStringFormat="{}{0} Hz" />
                                 </StackPanel>
+
+                                <!-- DPI stages -->
+                                <StackPanel Visibility="{Binding HasDpiStages, Converter={StaticResource Visible}}" Margin="0,16,0,0">
+                                    <DockPanel Margin="0,0,0,6">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Content="+" Command="{Binding AddStageCommand}" ToolTip="Add stage" Margin="0,0,6,0" Width="32" />
+                                            <Button Content="−" Command="{Binding RemoveStageCommand}" ToolTip="Remove stage" Width="32" />
+                                        </StackPanel>
+                                        <TextBlock Text="DPI stages (the DPI button cycles through these)" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <ItemsControl ItemsSource="{Binding DpiStages}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <c:SliderRow Label="{Binding Label}" Minimum="100" Maximum="30000" Step="50" Value="{Binding Dpi}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <TextBlock Text="Active stage" Style="{StaticResource Label}" Width="150" />
+                                        <ComboBox ItemsSource="{Binding StageNumbers}" SelectedItem="{Binding ActiveStage}" Width="80" MinWidth="80" />
+                                        <Button Content="Save stages" Style="{StaticResource AccentButton}" Command="{Binding ApplyStagesCommand}" Margin="12,0,0,0" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Power -->
+                            <StackPanel Visibility="{Binding HasPower, Converter={StaticResource Visible}}" Margin="0,8,0,10">
+                                <TextBlock Text="Power" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <c:SliderRow Label="Sleep after" Minimum="1" Maximum="15" Format="{}{0:0} min" Value="{Binding IdleMinutes}"
+                                             Visibility="{Binding HasIdle, Converter={StaticResource Visible}}" />
+                                <c:SliderRow Label="Low battery warning" Minimum="5" Maximum="25" Format="{}{0:0}%" Value="{Binding LowBattery}"
+                                             Visibility="{Binding HasLowBattery, Converter={StaticResource Visible}}" />
+                                <Button Content="Save power settings" Command="{Binding ApplyPowerCommand}" HorizontalAlignment="Left" Margin="150,6,0,0" />
                             </StackPanel>
 
                             <!-- Lighting -->
@@ -60,49 +94,12 @@
                                 <Button Content="Apply lighting" Style="{StaticResource AccentButton}" Command="{Binding ApplyLightingCommand}"
                                         VerticalAlignment="Bottom" Margin="0,0,0,10" />
                             </WrapPanel>
+                            <CheckBox Content="Apply to all zones" IsChecked="{Binding AllZones}" Margin="0,0,0,6" />
                             <c:SliderRow Label="Brightness" Minimum="0" Maximum="255" Value="{Binding Brightness}" />
                         </StackPanel>
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-
-        <!-- OpenRGB -->
-        <Border Style="{StaticResource Card}">
-            <StackPanel>
-                <c:CardHeader Glyph="&#xE781;" Title="OpenRGB"
-                              Subtitle="OpenRGB is a free, open-source RGB controller for Razer, Corsair, Logitech, ASUS Aura, motherboards, RAM and more. Run it with Settings → SDK Server enabled, then connect." />
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <TextBlock Text="Host" Style="{StaticResource Label}" />
-                    <TextBox Text="{Binding OpenRgb.Host}" Width="140" />
-                    <TextBlock Text="Port" Style="{StaticResource Label}" Margin="16,0,12,0" />
-                    <TextBox Text="{Binding OpenRgb.Port}" Width="70" />
-                    <Button Content="Connect" Style="{StaticResource AccentButton}" Command="{Binding ConnectOpenRgbCommand}" Margin="16,0,0,0" />
-                </StackPanel>
-                <CheckBox Content="Connect automatically" IsChecked="{Binding OpenRgb.AutoConnect}" />
-                <TextBlock Text="{Binding OpenRgbStatus}" Style="{StaticResource Muted}" Margin="0,8,0,8" />
-
-                <ItemsControl ItemsSource="{Binding Controllers}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                <DockPanel>
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <c:ColorPicker Color="{Binding Color}" Margin="0,0,8,0" />
-                                        <Button Content="Set colour" Command="{Binding ApplyColorCommand}" Margin="0,0,16,0" />
-                                        <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" Width="140" />
-                                        <Button Content="Set mode" Command="{Binding ApplyModeCommand}" Margin="8,0,0,0" />
-                                    </StackPanel>
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Details}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
     </StackPanel>
 </UserControl>

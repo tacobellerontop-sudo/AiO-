@@ -16,6 +16,18 @@ jobs:
         run: dotnet test tests/AiO.Core.Tests -c Release
       - name: Publish
         run: dotnet publish src/AiO.App -c Release -o publish
+      - name: Include the mouse acceleration driver (RawAccel, MIT)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo a1xd/rawaccel --pattern "*.zip" --dir rawaccel
+          $zip = Get-ChildItem rawaccel/*.zip | Select-Object -First 1
+          Expand-Archive $zip.FullName -DestinationPath rawaccel/x
+          $writer = Get-ChildItem rawaccel/x -Recurse -Filter writer.exe | Select-Object -First 1
+          if (-not $writer) { throw "writer.exe not found in $($zip.Name)" }
+          Copy-Item $writer.DirectoryName -Destination publish/RawAccel -Recurse
+          Get-ChildItem publish/RawAccel -Recurse | Select-Object -ExpandProperty FullName
       - uses: actions/upload-artifact@v4
         with:
           name: AiO-win-x64

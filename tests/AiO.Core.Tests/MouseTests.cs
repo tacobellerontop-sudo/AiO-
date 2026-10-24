@@ -179,3 +179,31 @@ public class RawAccelSettingsTests
         Assert.Equal("lut", (string?)edited["profiles"]![0]!["Whole or horizontal accel parameters"]!["mode"]);
     }
 }
+
+public class MouseSettingsTests
+{
+    [Fact]
+    public void Acceleration_profile_persists_in_aio_settings()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"aio-{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new AiO.Core.Settings.SettingsStore(path);
+            store.Current.Mouse.Profile = new RawAccelProfile
+            {
+                Accel = new AccelParameters { Mode = AccelMode.Natural, Limit = 1.7 },
+                OutputDpi = 1250,
+            };
+            store.Save();
+            var loaded = new AiO.Core.Settings.SettingsStore(path).Load().Mouse.Profile;
+            Assert.NotNull(loaded);
+            Assert.Equal(AccelMode.Natural, loaded.Accel.Mode);
+            Assert.Equal(1.7, loaded.Accel.Limit);
+            Assert.Equal(1.25, loaded.SensitivityMultiplier);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+}

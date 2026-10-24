@@ -135,9 +135,69 @@ public sealed class RazerDevice : IDisposable
 
     public void SetDpi(int x, int y) => Send(RazerCommands.SetDpi(x, y));
 
-    public int? GetPollingRate() => TryGet(() => RazerCommands.ParsePollingRate(Send(RazerCommands.GetPollingRate())));
+    /// <summary>True for newer mice that use the "hyperpolling" command (rates above 1000 Hz).</summary>
+    public bool SupportsHyperPolling { get; private set; }
 
-    public void SetPollingRate(int hz) => Send(RazerCommands.SetPollingRate(hz));
+    public IReadOnlyList<int> PollingRates => SupportsHyperPolling ? [125, 250, 500, 1000, 2000, 4000, 8000] : [125, 500, 1000];
+
+    public int? GetPollingRate()
+    {
+        if (TryGet(() => RazerCommands.ParsePollingRate2(Send(RazerCommands.GetPollingRate2()))) is int hyper and > 0)
+        {
+            SupportsHyperPolling = true;
+            return hyper;
+        }
+        return TryGet(() => RazerCommands.ParsePollingRate(Send(RazerCommands.GetPollingRate())));
+    }
+
+    public void SetPollingRate(int hz)
+    {
+        if (!SupportsHyperPolling)
+        {
+            Send(RazerCommands.SetPollingRate(hz));
+            return;
+        }
+        // Razer's own software sends the hyperpolling command twice, with argument 0 and 1.
+        Send(RazerCommands.SetPollingRate2(hz, 0x00));
+        try { Send(RazerCommands.SetPollingRate2(hz, 0x01)); }
+        catch (RazerCommandException) { }
+    }
+
+    public (int Active, IReadOnlyList<int> Stages)? GetDpiStages()
+    {
+        try
+        {
+            var stages = RazerCommands.ParseDpiStages(Send(RazerCommands.GetDpiStages()));
+            return stages.Stages.Count > 0 ? stages : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public void SetDpiStages(IReadOnlyList<int> stages, int activeStage) => Send(RazerCommands.SetDpiStages(stages, activeStage));
+
+    public int? GetIdleSeconds() => TryGet(() => RazerCommands.ParseIdleTime(Send(RazerCommands.GetIdleTime())));
+
+    public void SetIdleSeconds(int seconds) => Send(RazerCommands.SetIdleTime(seconds));
+
+    public int? GetLowBatteryPercent() => TryGet(() => RazerCommands.ParseLowBatteryPercent(Send(RazerCommands.GetLowBatteryThreshold())));
+
+    public void SetLowBatteryPercent(int percent) => Send(RazerCommands.SetLowBatteryThreshold(percent));
+
+    private static readonly RazerLed[] CandidateLeds =
+        [RazerLed.Zero, RazerLed.Logo, RazerLed.ScrollWheel, RazerLed.Backlight, RazerLed.Underglow, RazerLed.LeftSide, RazerLed.RightSide];
+
+    /// <summary>
+    /// Lighting zones this device actually has, found by asking each zone for its brightness
+    /// (a zone that doesn't exist answers "not supported"). Falls back to typical zones.
+    /// </summary>
+    public IReadOnlyList<RazerLed> DetectLeds()
+    {
+        var found = CandidateLeds.Where(led => GetBrightness(led) is not null).ToList();
+        return found.Count > 0 ? found : SuggestedLeds;
+    }
 
     public int? GetBatteryPercent() => TryGet(() => RazerCommands.ParseBatteryPercent(Send(RazerCommands.GetBatteryLevel())));
 

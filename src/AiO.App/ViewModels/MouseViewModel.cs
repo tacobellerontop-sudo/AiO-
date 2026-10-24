@@ -1,7 +1,6 @@
 using System.Windows.Input;
 using AiO.App.Infrastructure;
 using AiO.Core.Mouse;
-using Microsoft.Win32;
 
 namespace AiO.App.ViewModels;
 
@@ -26,20 +25,14 @@ public sealed class MouseViewModel : ObservableObject
             EnhancePointerPrecision = false;
             _services.Report("Windows pointer set to 10/20 with Enhance Pointer Precision off, as RawAccel recommends.");
         });
-        BrowseCommand = new RelayCommand(Browse);
-        DetectCommand = new RelayCommand(Detect);
-        DownloadCommand = new RelayCommand(() => SystemIntegration.OpenUrl(RawAccel.DownloadUrl));
+        GetPackageCommand = new AsyncCommand(GetPackageAsync);
+        InstallCommand = new AsyncCommand(() => RunInstallerAsync(uninstall: false));
+        UninstallCommand = new AsyncCommand(() => RunInstallerAsync(uninstall: true));
         ApplyCommand = new AsyncCommand(ApplyAsync);
         ReloadCommand = new RelayCommand(LoadProfile);
         ResetCommand = new RelayCommand(() => Profile = new RawAccelProfile { Accel = new AccelParameters { Mode = Mode } });
-        OpenRawAccelCommand = new RelayCommand(() =>
-        {
-            var exe = System.IO.Path.Combine(Folder ?? "", "rawaccel.exe");
-            if (System.IO.File.Exists(exe)) SystemIntegration.OpenUrl(exe);
-        });
 
         RefreshStatus();
-        if (!FolderValid) Detect(quiet: true);
         LoadProfile();
     }
 
@@ -81,32 +74,22 @@ public sealed class MouseViewModel : ObservableObject
 
     public ICommand RecommendedWindowsCommand { get; }
 
-    // ---- RawAccel setup --------------------------------------------------------
+    // ---- Driver -------------------------------------------------------------------
 
     private Core.Settings.MouseSettings Saved => _services.Settings.Current.Mouse;
+    private bool _busy;
 
-    public string? Folder
-    {
-        get => Saved.RawAccelFolder;
-        private set
-        {
-            Saved.RawAccelFolder = value;
-            _services.SaveSettings();
-            OnPropertyChanged();
-            RefreshStatus();
-        }
-    }
-
-    public bool FolderValid => RawAccel.IsValidFolder(Folder);
+    public bool PackageReady => RawAccel.PackageFolder is not null;
     public bool DriverInstalled { get => _driverInstalled; private set => Set(ref _driverInstalled, value); }
-    public bool Ready => FolderValid && DriverInstalled;
+    public bool Busy { get => _busy; private set => Set(ref _busy, value); }
+    public bool ShowGetPackage => !PackageReady;
+    public bool ShowInstall => PackageReady && !DriverInstalled;
 
-    public string Status => (FolderValid, DriverInstalled) switch
+    public string Status => (PackageReady, DriverInstalled) switch
     {
-        (true, true) => "RawAccel driver running. Changes below are applied through RawAccel.",
-        (true, false) => "RawAccel is downloaded but its driver isn't running. Run installer.exe from the RawAccel folder, then restart Windows.",
-        (false, true) => "The RawAccel driver is running. Point AiO at the RawAccel folder (the one with writer.exe).",
-        _ => "RawAccel isn't installed. It's a free, signed, open-source driver: download it, unzip it, run installer.exe and restart.",
+        (_, true) => "Acceleration driver running. Changes below apply to every app and game, including raw-input games.",
+        (true, false) => "One-time setup: install the acceleration driver, then restart Windows.",
+        _ => "This AiO build doesn't include the acceleration driver files. Get them with one click (about 1 MB).",
     };
 
     public bool ReapplyOnStartup
@@ -115,50 +98,50 @@ public sealed class MouseViewModel : ObservableObject
         set { Saved.ReapplyRawAccelOnStartup = value; _services.SaveSettings(); OnPropertyChanged(); }
     }
 
-    public ICommand BrowseCommand { get; }
-    public ICommand DetectCommand { get; }
-    public ICommand DownloadCommand { get; }
-    public ICommand OpenRawAccelCommand { get; }
+    public ICommand GetPackageCommand { get; }
+    public ICommand InstallCommand { get; }
+    public ICommand UninstallCommand { get; }
 
     private void RefreshStatus()
     {
         DriverInstalled = Try(RawAccel.IsDriverInstalled, false);
-        OnPropertyChanged(nameof(FolderValid));
-        OnPropertyChanged(nameof(Ready));
-        OnPropertyChanged(nameof(Status));
+        foreach (var name in new[] { nameof(PackageReady), nameof(ShowGetPackage), nameof(ShowInstall), nameof(Status) })
+            OnPropertyChanged(name);
     }
 
-    private void Browse()
+    private async Task GetPackageAsync()
     {
-        var dialog = new OpenFileDialog
+        Busy = true;
+        try
         {
-            Title = "Find RawAccel's writer.exe",
-            Filter = "RawAccel writer (writer.exe)|writer.exe",
-            InitialDirectory = Folder,
-        };
-        if (dialog.ShowDialog() == true)
+            await RawAccel.DownloadPackageAsync();
+            _services.Report("Driver files ready. Next: install the driver.");
+        }
+        catch (Exception ex)
         {
-            Folder = System.IO.Path.GetDirectoryName(dialog.FileName);
-            LoadProfile();
+            _services.Report($"Couldn't get the driver files: {ex.Message}");
+        }
+        finally
+        {
+            Busy = false;
+            RefreshStatus();
         }
     }
 
-    private void Detect() => Detect(quiet: false);
-
-    private void Detect(bool quiet)
+    private async Task RunInstallerAsync(bool uninstall)
     {
-        var found = Try(RawAccel.FindFolder, null);
-        if (found is not null)
+        Busy = true;
+        try
         {
-            Folder = found;
-            LoadProfile();
-            if (!quiet) _services.Report($"Found RawAccel in {found}.");
+            var result = await Task.Run(() => RawAccel.RunInstaller(uninstall));
+            _services.Report(result.Message);
+            if (result.Success && Views.Dialogs.Confirm($"{result.Message}\n\nRestart now?")) SystemIntegration.RestartWindows();
         }
-        else if (!quiet)
+        finally
         {
-            _services.Report("Couldn't find RawAccel in Downloads, Desktop or Documents. Use Browse.");
+            Busy = false;
+            RefreshStatus();
         }
-        RefreshStatus();
     }
 
     // ---- Profile -----------------------------------------------------------------
@@ -180,16 +163,15 @@ public sealed class MouseViewModel : ObservableObject
 
     private void LoadProfile()
     {
-        if (FolderValid && RawAccel.ReadProfile(Folder!) is { } profile) Profile = profile;
-        else Profile = _profile;
+        Profile = Saved.Profile ?? _profile;
     }
 
     private async Task ApplyAsync()
     {
-        string? folder = Folder;
         var profile = _profile;
-        if (folder is null) { _services.Report("Choose the RawAccel folder first."); return; }
-        var result = await Task.Run(() => RawAccel.Apply(folder, profile));
+        Saved.Profile = profile;
+        _services.SaveSettings();
+        var result = await Task.Run(() => RawAccel.Apply(profile));
         _services.Report(result.Message);
     }
 

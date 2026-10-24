@@ -18,10 +18,9 @@ settings at start-up.
 | **Colour → GPU** | NVIDIA digital vibrance and hue; AMD saturation, hue, brightness and contrast | NVAPI, AMD Display Library (ADL) |
 | **Colour → Software** | Colour temperature, gamma, brightness, contrast, per-channel gain on any GPU | GPU gamma ramp |
 | **Colour → Presets** | Built-in (Default, Vivid, Competitive, Movie, Reading, Night) and your own presets combining software colour, GPU vibrance and monitor brightness/contrast; switch from the tray or a keyboard shortcut | All of the above |
-| **Mouse** | RawAccel acceleration curves (linear, classic, natural, synchronous, power, jump) with a live graph; Windows pointer speed and Enhance Pointer Precision | [RawAccel](https://github.com/a1xd/rawaccel)'s signed driver: AiO edits its `settings.json` and runs its `writer.exe` |
+| **Mouse** | Raw mouse acceleration (linear, classic, natural, synchronous, power, jump) with a live curve editor, applied to every app and raw-input game; Windows pointer speed and Enhance Pointer Precision | [RawAccel](https://github.com/a1xd/rawaccel)'s signed filter driver ships inside AiO; AiO provides the editor, settings and start-up |
 | **Keyboard** | Remap any key, remap shortcuts, launch apps, type text, cycle ASUS modes; optionally only inside specific apps. Works with any keyboard | Low-level keyboard hook, like PowerToys Keyboard Manager |
-| **Razer & RGB** | DPI, polling rate, lighting effects, brightness and battery for Razer devices, **without Synapse** | Razer HID protocol as documented by [OpenRazer](https://github.com/openrazer/openrazer) |
-| | Lighting for any device [OpenRGB](https://openrgb.org) supports | OpenRGB SDK network protocol |
+| **Razer** | DPI, DPI stages, polling rate up to 8000 Hz, lighting per detected zone, brightness, battery, sleep timer and low-battery warning, **without Synapse** | Razer HID protocol as documented by [OpenRazer](https://github.com/openrazer/openrazer) |
 | **ASUS** | Silent / Balanced / Turbo, Eco / Standard / Ultimate GPU modes, live temperatures and fan RPM, custom fan curves and power limits per mode, battery charge limit, panel overdrive, keyboard backlight | ASUS ATKACPI driver and Aura HID, as documented by [G-Helper](https://github.com/seerge/g-helper) |
 
 The ASUS page only appears on ASUS laptops that have the ASUS System Control Interface driver installed.
@@ -30,11 +29,10 @@ The ASUS page only appears on ASUS laptops that have the ASUS System Control Int
 
 - Windows 10 or 11, x64
 - [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Optional: [OpenRGB](https://openrgb.org) with its SDK server enabled, for non-Razer RGB
 
 ### Tips
 
-- **RawAccel:** download it, unzip it, run `installer.exe` and restart Windows. Then point AiO's Mouse page at the folder.
+- **Mouse acceleration:** on the Mouse page, click *Install driver* once and restart Windows.
 - **Keyboard remaps** can't reach apps running as administrator unless AiO is elevated too.
 - **Razer:** quit Synapse before using AiO's Razer page. Two programs sending commands to the same device conflict.
 - **Strong colour temperatures:** Windows limits how far gamma ramps can move. The Colour page has an
@@ -62,7 +60,6 @@ src/AiO.Core     Hardware access and protocol code (no UI). Plain net8.0 so test
   Gpu/           NVAPI (NVIDIA) and ADL (AMD) colour controls
   Hid/           Windows HID enumeration and feature reports
   Razer/         Razer report format, commands, device discovery, device catalogue
-  OpenRgb/       OpenRGB SDK client
   Asus/          ATKACPI calls, fan curves, performance/GPU modes, Aura keyboard
   Mouse/         RawAccel curve maths (ported for the preview) and settings.json editing, Windows pointer
   Keyboard/      Remapping engine (pure, tested) and the low-level keyboard hook
@@ -78,11 +75,10 @@ AiO reimplements hardware protocols documented by these open-source projects. It
 
 - [OpenRazer](https://github.com/openrazer/openrazer): the Razer HID report format and the product IDs in `RazerDeviceCatalog.g.cs`
 - [G-Helper](https://github.com/seerge/g-helper): ASUS ACPI device IDs and the Aura keyboard message format
-- [OpenRGB](https://openrgb.org): the SDK network protocol
-- [RawAccel](https://github.com/a1xd/rawaccel) (MIT): acceleration curve formulas, ported for AiO's preview graph, and the settings file format
+- [RawAccel](https://github.com/a1xd/rawaccel) (MIT, by a1xd): the signed mouse filter driver shipped with AiO, the acceleration curve formulas (ported for AiO's graph) and the settings format
 
 See [NOTICE.md](NOTICE.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+AiO is free software under the GNU General Public License, version 3 or (at your option) any later version. See [LICENSE](LICENSE). Third-party parts are listed in [NOTICE.md](NOTICE.md).

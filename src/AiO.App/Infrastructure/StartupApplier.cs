@@ -18,14 +18,13 @@ public static class StartupApplier
         Try("colour", () => ApplyColor(services, settings));
         if (services.Asus is { } asus) Try("ASUS", () => ApplyAsus(asus, settings.Asus));
         if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus, services.Asus));
-        if (settings.Mouse.ReapplyRawAccelOnStartup && RawAccel.IsValidFolder(settings.Mouse.RawAccelFolder))
+        if (settings.Mouse.ReapplyRawAccelOnStartup && RawAccel.PackageFolder is not null)
         {
-            // writer.exe takes about a second; don't hold up start-up for it.
-            string folder = settings.Mouse.RawAccelFolder!;
-            Task.Run(() => Try("RawAccel", () =>
+            // The driver's writer takes about a second; don't hold up start-up for it.
+            Task.Run(() => Try("mouse acceleration", () =>
             {
-                var result = RawAccel.Reapply(folder);
-                if (!result.Success) AppServices.Instance.Report(result.Message);
+                var result = RawAccel.Reapply();
+                if (!result.Success && RawAccel.IsDriverInstalled()) AppServices.Instance.Report(result.Message);
             }));
         }
     }

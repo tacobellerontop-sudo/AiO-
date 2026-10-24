@@ -4,6 +4,7 @@ using AiO.Core.Asus;
 using AiO.Core.Color;
 using AiO.Core.Gpu;
 using AiO.Core.Keyboard;
+using AiO.Core.Mouse;
 
 namespace AiO.Core.Settings;
 
@@ -13,7 +14,6 @@ public sealed class AppSettings
     public Dictionary<string, DisplayColorSettings> Displays { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public AsusSettings Asus { get; set; } = new();
     public Dictionary<string, RazerDeviceSettings> Razer { get; set; } = new();
-    public OpenRgbSettings OpenRgb { get; set; } = new();
     public MouseSettings Mouse { get; set; } = new();
     public KeyboardSettings Keyboard { get; set; } = new();
     /// <summary>User-made colour presets (built-in ones live in <see cref="ColorPreset.BuiltIn"/>).</summary>
@@ -22,9 +22,9 @@ public sealed class AppSettings
 
 public sealed class MouseSettings
 {
-    /// <summary>Folder of the RawAccel release (contains writer.exe).</summary>
-    public string? RawAccelFolder { get; set; }
-    /// <summary>RawAccel's driver forgets its curve on reboot; AiO re-sends it at start-up.</summary>
+    /// <summary>The acceleration curve being edited and applied.</summary>
+    public RawAccelProfile? Profile { get; set; }
+    /// <summary>The acceleration driver forgets its curve on reboot; AiO re-sends it at start-up.</summary>
     public bool ReapplyRawAccelOnStartup { get; set; } = true;
 }
 
@@ -116,13 +116,6 @@ public sealed class RazerDeviceSettings
     public string Color { get; set; } = "#00FF00";
     public string Color2 { get; set; } = "#0000FF";
     public int Brightness { get; set; } = 255;
-}
-
-public sealed class OpenRgbSettings
-{
-    public string Host { get; set; } = "127.0.0.1";
-    public int Port { get; set; } = 6742;
-    public bool AutoConnect { get; set; }
 }
 
 /// <summary>Loads and saves settings as JSON in %APPDATA%\AiO\settings.json.</summary>

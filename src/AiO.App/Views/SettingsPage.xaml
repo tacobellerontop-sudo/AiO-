@@ -31,7 +31,6 @@
                               Subtitle="AiO builds on hardware knowledge documented by these open-source projects. Use them directly if you need features AiO doesn't have yet." />
                 <WrapPanel>
                     <Button Content="OpenRazer" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/openrazer/openrazer" Margin="0,0,8,8" />
-                    <Button Content="OpenRGB" Command="{Binding OpenUrlCommand}" CommandParameter="https://openrgb.org" Margin="0,0,8,8" />
                     <Button Content="G-Helper" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/seerge/g-helper" Margin="0,0,8,8" />
                     <Button Content="RawAccel" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/a1xd/rawaccel" Margin="0,0,8,8" />
                 </WrapPanel>

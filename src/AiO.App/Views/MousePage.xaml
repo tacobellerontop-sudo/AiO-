@@ -4,24 +4,25 @@
              xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
         <c:PageHeader Glyph="&#xE962;" Title="Mouse"
-                      Subtitle="Raw mouse acceleration through RawAccel, plus Windows' own pointer settings." />
+                      Subtitle="Raw mouse acceleration with a live curve editor (works in raw-input games too), plus Windows' own pointer settings." />
 
-        <!-- RawAccel status -->
+        <!-- Driver -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <c:CardHeader Glyph="&#xE9D9;" Title="RawAccel" Subtitle="{Binding Status}">
+                <c:CardHeader Glyph="&#xE9D9;" Title="Acceleration driver" Subtitle="{Binding Status}">
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Download" Command="{Binding DownloadCommand}" Margin="0,0,8,0"
-                                Visibility="{Binding FolderValid, Converter={StaticResource Hidden}}" />
-                        <Button Content="Find" Command="{Binding DetectCommand}" Margin="0,0,8,0" />
-                        <Button Content="Browse…" Command="{Binding BrowseCommand}" />
+                        <Button Content="Get driver files" Style="{StaticResource AccentButton}" Command="{Binding GetPackageCommand}"
+                                Visibility="{Binding ShowGetPackage, Converter={StaticResource Visible}}" />
+                        <Button Content="Install driver" Style="{StaticResource AccentButton}" Command="{Binding InstallCommand}"
+                                Visibility="{Binding ShowInstall, Converter={StaticResource Visible}}" />
+                        <Button Content="Remove driver" Command="{Binding UninstallCommand}"
+                                Visibility="{Binding DriverInstalled, Converter={StaticResource Visible}}" />
                     </StackPanel>
                 </c:CardHeader>
-                <TextBlock Text="{Binding Folder}" Style="{StaticResource Muted}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
-                           Visibility="{Binding Folder, Converter={StaticResource Visible}}" />
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <CheckBox Content="Re-apply when AiO starts (RawAccel forgets its curve on reboot)" IsChecked="{Binding ReapplyOnStartup}" />
-                </StackPanel>
+                <TextBlock Text="Working…" Style="{StaticResource Muted}" Visibility="{Binding Busy, Converter={StaticResource Visible}}" Margin="0,0,0,6" />
+                <CheckBox Content="Re-apply the curve when AiO starts (the driver forgets it on restart)" IsChecked="{Binding ReapplyOnStartup}" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0"
+                           Text="The driver is RawAccel's signed, open-source mouse filter driver (MIT, by a1xd). AiO provides everything else: the curve editor, settings and start-up." />
             </StackPanel>
         </Border>
 
@@ -40,7 +41,7 @@
                 <c:CurveGraph Points="{Binding Curve}" MaxX="100" Height="240" Margin="0,4,0,16" />
 
                 <TextBlock Style="{StaticResource Warning}" Margin="0,0,0,12" Visibility="{Binding IsLut, Converter={StaticResource Visible}}"
-                           Text="This RawAccel profile uses a look-up table, which AiO can't edit. Pick another style to replace it, or edit it in RawAccel's own app." />
+                           Text="This profile uses a look-up table, which AiO can't edit. Pick another style to replace it." />
 
                 <WrapPanel Margin="0,0,0,8">
                     <StackPanel Margin="0,0,16,8">
@@ -90,8 +91,6 @@
                 <c:SliderRow Label="Rotation" Minimum="-30" Maximum="30" Step="0.5" Format="{}{0:0.0}°" Value="{Binding Rotation}" />
                 <c:SliderRow Label="Angle snapping" Minimum="0" Maximum="10" Step="0.5" Format="{}{0:0.0}°" Value="{Binding AngleSnap}" />
 
-                <Button Content="Open RawAccel's own app" Command="{Binding OpenRawAccelCommand}" HorizontalAlignment="Left" Margin="0,14,0,0"
-                        Visibility="{Binding FolderValid, Converter={StaticResource Visible}}" />
             </StackPanel>
         </Border>
 

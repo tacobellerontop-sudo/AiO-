@@ -46,7 +46,7 @@ public sealed class MainViewModel : ObservableObject
             new("Colour", "\uE790", DisplayGroup, () => new Views.ColorPage { DataContext = new ColorViewModel() }),
             new("Mouse", "\uE962", InputGroup, () => new Views.MousePage { DataContext = new MouseViewModel() }),
             new("Keyboard", "\uE765", InputGroup, () => new Views.KeyboardPage { DataContext = Keyboard }),
-            new("Razer & RGB", "\uEA80", InputGroup, () => new Views.RazerPage { DataContext = new RazerViewModel() }),
+            new("Razer", "\uEA80", InputGroup, () => new Views.RazerPage { DataContext = new RazerViewModel() }),
             // Always listed so it's discoverable; explains itself when the laptop isn't supported.
             CreateAsusPage(),
             new("Settings", "\uE713", SystemGroup, () => new Views.SettingsPage { DataContext = new SettingsViewModel() }),

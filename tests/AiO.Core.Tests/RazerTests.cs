@@ -122,3 +122,55 @@ public class RazerTests
         Assert.Throws<FormatException>(() => RgbColor.FromHex("#123"));
     }
 }
+
+public class RazerExtendedTests
+{
+    [Theory]
+    [InlineData(8000, 0x01)]
+    [InlineData(4000, 0x02)]
+    [InlineData(2000, 0x04)]
+    [InlineData(1000, 0x08)]
+    [InlineData(125, 0x40)]
+    public void Hyperpolling_codes_round_trip(int hz, byte code)
+    {
+        var r = RazerCommands.SetPollingRate2(hz, 0x00);
+        Assert.Equal((0x00, 0x40, 0x02), (r.CommandClass, r.CommandId, r.DataSize));
+        Assert.Equal(code, r.Arguments[1]);
+        Assert.Equal(hz, RazerCommands.ParsePollingRate2(r));
+    }
+
+    [Fact]
+    public void Dpi_stages_layout_and_parse()
+    {
+        var r = RazerCommands.SetDpiStages([800, 1800, 3200], activeStage: 2);
+        Assert.Equal((0x04, 0x06, 0x26), (r.CommandClass, r.CommandId, r.DataSize));
+        Assert.Equal(new byte[] { 0x01, 2, 3, 0, 0x03, 0x20, 0x03, 0x20, 0, 0, 1, 0x07, 0x08 }, r.Arguments[..13]);
+
+        var (active, stages) = RazerCommands.ParseDpiStages(r);
+        Assert.Equal(2, active);
+        Assert.Equal([800, 1800, 3200], stages);
+    }
+
+    [Fact]
+    public void Dpi_stage_count_is_limited()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => RazerCommands.SetDpiStages([], 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => RazerCommands.SetDpiStages([1, 2, 3, 4, 5, 6], 1));
+    }
+
+    [Fact]
+    public void Idle_time_is_clamped_and_big_endian()
+    {
+        var r = RazerCommands.SetIdleTime(5000);
+        Assert.Equal(900, RazerCommands.ParseIdleTime(r));
+        Assert.Equal(new byte[] { 0x03, 0x84 }, r.Arguments[..2]);
+    }
+
+    [Fact]
+    public void Low_battery_threshold_is_clamped()
+    {
+        Assert.Equal(0x0C, RazerCommands.SetLowBatteryThreshold(1).Arguments[0]);
+        Assert.Equal(0x3F, RazerCommands.SetLowBatteryThreshold(90).Arguments[0]);
+        Assert.Equal(10, RazerCommands.ParseLowBatteryPercent(RazerCommands.SetLowBatteryThreshold(10)));
+    }
+}

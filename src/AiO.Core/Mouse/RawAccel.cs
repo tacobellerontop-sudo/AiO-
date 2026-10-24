@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Net.Http.Headers;
+using System.Text.Json.Nodes;
 using AiO.Core.Native;
 
 namespace AiO.Core.Mouse;
@@ -6,102 +9,194 @@ namespace AiO.Core.Mouse;
 public sealed record RawAccelApplyResult(bool Success, string Message);
 
 /// <summary>
-/// Integration with RawAccel (https://github.com/a1xd/rawaccel), the open-source, signed mouse
-/// acceleration driver. AiO edits RawAccel's settings.json and asks RawAccel's writer.exe to push it
-/// to the driver, so AiO and RawAccel's own GUI stay in sync.
+/// AiO's mouse acceleration engine. The kernel-mode part is RawAccel's signed driver
+/// (https://github.com/a1xd/rawaccel, MIT, by a1xd), shipped inside AiO's folder; AiO itself provides
+/// the curve editor, the settings and the start-up handling. RawAccel's own GUI isn't used.
 /// </summary>
 public static class RawAccel
 {
-    public const string DownloadUrl = "https://github.com/a1xd/rawaccel/releases";
-    public const string SettingsFileName = "settings.json";
+    public const string ProjectUrl = "https://github.com/a1xd/rawaccel";
+    private const string LatestReleaseApi = "https://api.github.com/repos/a1xd/rawaccel/releases/latest";
     public const string WriterFileName = "writer.exe";
+    public const string InstallerFileName = "installer.exe";
+    public const string UninstallerFileName = "uninstaller.exe";
 
-    /// <summary>True when the RawAccel driver is installed and running (needs a reboot after installing).</summary>
+    /// <summary>Where the Windows build puts the driver package: next to AiO.exe.</summary>
+    public static string BundledFolder => Path.Combine(AppContext.BaseDirectory, "RawAccel");
+
+    /// <summary>Where AiO fetches the package itself when a build doesn't include it.</summary>
+    public static string DownloadedFolder => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiO", "RawAccel");
+
+    /// <summary>AiO keeps the curve here (writable even when AiO lives in Program Files).</summary>
+    public static string SettingsPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AiO", "mouse-acceleration.json");
+
+    /// <summary>The driver package AiO will use, or null if it has none yet.</summary>
+    public static string? PackageFolder =>
+        IsValidFolder(BundledFolder) ? BundledFolder : IsValidFolder(DownloadedFolder) ? DownloadedFolder : null;
+
+    /// <summary>True when the driver is installed and running (it needs a restart after installing).</summary>
     public static bool IsDriverInstalled()
     {
         using var handle = Kernel32.CreateFile(@"\\.\rawaccel", 0, 0, IntPtr.Zero, Kernel32.OPEN_EXISTING, 0, IntPtr.Zero);
         return !handle.IsInvalid;
     }
 
-    /// <summary>A folder is usable if it holds RawAccel's writer.exe (the release zip's folder).</summary>
     public static bool IsValidFolder(string? folder) =>
         !string.IsNullOrWhiteSpace(folder) && File.Exists(Path.Combine(folder, WriterFileName));
 
-    /// <summary>Looks in the usual places people unzip RawAccel.</summary>
-    public static string? FindFolder()
+    /// <summary>
+    /// Downloads RawAccel's latest release package into <see cref="DownloadedFolder"/>
+    /// (only needed when this AiO build doesn't already include it).
+    /// </summary>
+    public static async Task<string> DownloadPackageAsync(CancellationToken ct = default)
     {
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string[] roots =
-        [
-            Path.Combine(home, "Downloads"),
-            Path.Combine(home, "Desktop"),
-            Path.Combine(home, "Documents"),
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-            @"C:\",
-        ];
-        foreach (var root in roots.Where(Directory.Exists))
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AiO", "1.0"));
+
+        var release = JsonNode.Parse(await http.GetStringAsync(LatestReleaseApi, ct));
+        string url = release?["assets"]?.AsArray()
+                         .Select(a => (string?)a?["browser_download_url"])
+                         .FirstOrDefault(u => u?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true)
+                     ?? throw new InvalidOperationException("RawAccel's release has no zip package.");
+
+        string temp = Path.Combine(Path.GetTempPath(), $"aio-rawaccel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        try
         {
-            try
-            {
-                foreach (var dir in Directory.EnumerateDirectories(root, "*rawaccel*", SearchOption.TopDirectoryOnly))
-                {
-                    if (IsValidFolder(dir)) return dir;
-                    // Release zips often extract to rawaccel_vX/rawaccel/.
-                    var nested = Directory.EnumerateDirectories(dir).FirstOrDefault(IsValidFolder);
-                    if (nested is not null) return nested;
-                }
-            }
-            catch (UnauthorizedAccessException) { }
-            catch (IOException) { }
+            string zipPath = Path.Combine(temp, "package.zip");
+            await using (var file = File.Create(zipPath))
+            await using (var stream = await http.GetStreamAsync(url, ct))
+                await stream.CopyToAsync(file, ct);
+
+            string extracted = Path.Combine(temp, "x");
+            ZipFile.ExtractToDirectory(zipPath, extracted);
+            string root = Directory.EnumerateFiles(extracted, WriterFileName, SearchOption.AllDirectories)
+                              .Select(Path.GetDirectoryName).FirstOrDefault()
+                          ?? throw new InvalidOperationException("The RawAccel package didn't contain writer.exe.");
+
+            if (Directory.Exists(DownloadedFolder)) Directory.Delete(DownloadedFolder, recursive: true);
+            Directory.CreateDirectory(Path.GetDirectoryName(DownloadedFolder)!);
+            CopyDirectory(root!, DownloadedFolder);
+            return DownloadedFolder;
         }
-        return null;
+        finally
+        {
+            try { Directory.Delete(temp, recursive: true); } catch (IOException) { }
+        }
     }
 
-    public static string SettingsPath(string folder) => Path.Combine(folder, SettingsFileName);
-
-    public static RawAccelProfile? ReadProfile(string folder)
+    private static void CopyDirectory(string from, string to)
     {
-        string path = SettingsPath(folder);
-        if (!File.Exists(path)) return null;
-        try { return RawAccelSettingsFile.ReadFirstProfile(File.ReadAllText(path)); }
-        catch (System.Text.Json.JsonException) { return null; }
+        Directory.CreateDirectory(to);
+        foreach (var file in Directory.EnumerateFiles(from)) File.Copy(file, Path.Combine(to, Path.GetFileName(file)), overwrite: true);
+        foreach (var dir in Directory.EnumerateDirectories(from)) CopyDirectory(dir, Path.Combine(to, Path.GetFileName(dir)));
     }
 
-    /// <summary>Saves the profile into RawAccel's settings.json (backing up the original once) and applies it.</summary>
-    public static RawAccelApplyResult Apply(string folder, RawAccelProfile profile)
+    /// <summary>Installs (or removes) the driver with RawAccel's installer, elevated. A restart finishes it.</summary>
+    public static RawAccelApplyResult RunInstaller(bool uninstall)
     {
-        if (!IsValidFolder(folder)) return new(false, "Choose the RawAccel folder (the one with writer.exe) first.");
-        if (!IsDriverInstalled())
-            return new(false, "The RawAccel driver isn't running. Run installer.exe from the RawAccel folder, then restart Windows.");
-
-        string path = SettingsPath(folder);
-        string? existing = File.Exists(path) ? File.ReadAllText(path) : null;
-        if (existing is not null && !File.Exists(path + ".aio-backup")) File.WriteAllText(path + ".aio-backup", existing);
-        File.WriteAllText(path, RawAccelSettingsFile.WriteFirstProfile(existing, profile));
-        return RunWriter(folder);
+        if (PackageFolder is not { } folder) return new(false, "The driver package isn't available yet.");
+        string exe = Path.Combine(folder, uninstall ? UninstallerFileName : InstallerFileName);
+        if (!File.Exists(exe)) return new(false, $"{Path.GetFileName(exe)} is missing from the driver package.");
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true, Verb = "runas", WorkingDirectory = folder });
+            process?.WaitForExit();
+            return process?.ExitCode == 0
+                ? new(true, uninstall ? "Driver removed. Restart Windows to finish." : "Driver installed. Restart Windows to start using it.")
+                : new(false, "The driver installer reported a problem.");
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return new(false, "Installing the driver needs administrator approval.");
+        }
     }
 
-    /// <summary>Re-sends the current settings.json (the driver forgets its settings on reboot).</summary>
-    public static RawAccelApplyResult Reapply(string folder) =>
-        IsValidFolder(folder) && File.Exists(SettingsPath(folder)) && IsDriverInstalled()
+    /// <summary>
+    /// The settings format differs slightly between driver versions, so the first time round AiO asks the
+    /// bundled writer for its own default file (it writes settings.json when started with no arguments,
+    /// then shows a usage message, which AiO closes) and edits that.
+    /// </summary>
+    private static string? DefaultFromPackage(string folder)
+    {
+        string temp = Path.Combine(Path.GetTempPath(), $"aio-rawaccel-default-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo(Path.Combine(folder, WriterFileName))
+            {
+                WorkingDirectory = temp,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (process is null) return null;
+            string file = Path.Combine(temp, "settings.json");
+            for (int i = 0; i < 100 && !File.Exists(file); i++) Thread.Sleep(100);
+            Thread.Sleep(200); // let it finish writing
+            try { process.Kill(); } catch (InvalidOperationException) { }
+            return File.Exists(file) ? File.ReadAllText(file) : null;
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            try { Directory.Delete(temp, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>The driver's own default settings file, kept once generated.</summary>
+    private static string BaseSettingsPath => Path.ChangeExtension(SettingsPath, ".base.json");
+
+    private static string? BaseSettings()
+    {
+        if (File.Exists(BaseSettingsPath)) return File.ReadAllText(BaseSettingsPath);
+        // The writer only produces its default when the driver is installed.
+        if (PackageFolder is not { } package || !IsDriverInstalled()) return null;
+        string? generated = DefaultFromPackage(package);
+        if (generated is not null)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(BaseSettingsPath)!);
+            File.WriteAllText(BaseSettingsPath, generated);
+        }
+        return generated;
+    }
+
+    /// <summary>Builds the driver's settings file from <paramref name="profile"/> and sends it to the driver.</summary>
+    public static RawAccelApplyResult Apply(RawAccelProfile profile)
+    {
+        if (PackageFolder is null) return new(false, "Curve saved. Set up the driver above to use it.");
+        if (!IsDriverInstalled()) return new(false, "Curve saved. Install the driver and restart Windows to use it.");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
+        File.WriteAllText(SettingsPath, RawAccelSettingsFile.WriteFirstProfile(BaseSettings(), profile));
+        return RunWriter(PackageFolder);
+    }
+
+    /// <summary>Re-sends the saved curve (the driver forgets it on every restart).</summary>
+    public static RawAccelApplyResult Reapply() =>
+        PackageFolder is { } folder && File.Exists(SettingsPath) && IsDriverInstalled()
             ? RunWriter(folder)
-            : new(false, "RawAccel isn't set up.");
+            : new(false, "Mouse acceleration isn't set up.");
 
     private static RawAccelApplyResult RunWriter(string folder)
     {
-        var info = new ProcessStartInfo(Path.Combine(folder, WriterFileName), $"\"{SettingsPath(folder)}\"")
+        var info = new ProcessStartInfo(Path.Combine(folder, WriterFileName), $"\"{SettingsPath}\"")
         {
             WorkingDirectory = folder,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
         using var process = Process.Start(info);
-        if (process is null) return new(false, "Could not start RawAccel's writer.exe.");
-        // writer.exe shows its own message box on bad settings and waits for it to be closed.
-        if (!process.WaitForExit(30_000)) return new(false, "RawAccel's writer.exe didn't finish; check for a message box from it.");
+        if (process is null) return new(false, "Could not reach the acceleration driver.");
+        // The driver's writer shows a message box on bad settings and waits for it to be closed.
+        if (!process.WaitForExit(30_000)) return new(false, "The acceleration driver didn't respond; check for a message box.");
         return process.ExitCode == 0
-            ? new(true, "RawAccel settings applied.")
-            : new(false, "RawAccel's writer.exe reported a problem (see its message box).");
+            ? new(true, "Mouse acceleration applied.")
+            : new(false, "The acceleration driver rejected these settings (see its message box).");
     }
 }
 
