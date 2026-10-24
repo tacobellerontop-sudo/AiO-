@@ -24,6 +24,11 @@ internal static class Kernel32
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool WriteFile(SafeFileHandle hFile, byte[] lpBuffer, uint nNumberOfBytesToWrite,
+        out uint lpNumberOfBytesWritten, IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DeviceIoControl(
         SafeFileHandle hDevice,
         uint dwIoControlCode,

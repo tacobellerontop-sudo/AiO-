@@ -33,7 +33,8 @@ public sealed class AsusViewModel : ObservableObject
         _batteryLimit = Saved.BatteryLimit;
         _overdrive = Probe(asus.GetOverdrive, null);
         _editingMode = Saved.PerformanceMode;
-        AuraAvailable = Probe(AsusAura.IsAvailable, false);
+        // Effects need either the N-KEY HID device (ROG) or ACPI RGB (TUF/Vivobook).
+        AuraAvailable = Probe(AsusAura.IsAvailable, false) || Probe(() => asus.SupportsAcpiKeyboardRgb, false);
 
         _sensorTimer.Tick += (_, _) => ReadSensors();
 
@@ -296,18 +297,12 @@ public sealed class AsusViewModel : ObservableObject
     {
         try
         {
-            if (AuraAvailable)
-            {
-                AsusAura.SetBrightness(Saved.KeyboardBrightness);
-                AsusAura.SetMode(Saved.AuraMode, RgbColor.FromHex(Saved.AuraColor), RgbColor.FromHex(Saved.AuraColor2), Saved.AuraSpeed);
-            }
-            else
-            {
-                _asus.SetAcpiKeyboardBrightness(Saved.KeyboardBrightness);
-            }
+            var result = StartupApplier.ApplyAura(Saved, _asus);
             Saved.ManageKeyboard = true;
             _services.SaveSettings();
-            _services.Report("Keyboard lighting applied.");
+            _services.Report(result.Any
+                ? $"Keyboard lighting sent via {result}."
+                : "No ASUS keyboard lighting interface accepted the command. Is G-Helper or Armoury Crate running? Close them and try again.");
         }
         catch (Exception ex)
         {

@@ -107,6 +107,36 @@ public class AsusTests
     }
 }
 
+public class AsusKeyboardTests
+{
+    [Fact]
+    public void Init_handshake_spells_asus_tech()
+    {
+        var msg = AsusAura.BuildInitMessage(AsusAura.InputReportId);
+        Assert.Equal(0x5A, msg[0]);
+        Assert.Equal("ASUS Tech.Inc.", Encoding.ASCII.GetString(msg, 1, 14));
+    }
+
+    [Fact]
+    public void Power_message_enables_all_zones()
+    {
+        Assert.Equal(new byte[] { 0x5D, 0xBD, 0x01, 0xFF, 0x1F, 0xFF, 0xFF, 0xFF }, AsusAura.PowerAllOnMessage);
+    }
+
+    [Fact]
+    public void Acpi_rgb_payload_layout()
+    {
+        Assert.Equal(new byte[] { 0xB4, 0x01, 10, 20, 30, 0xF5 },
+            AsusAura.BuildAcpiRgbPayload(0xB4, AuraMode.Breathe, new RgbColor(10, 20, 30), AuraSpeed.Fast));
+    }
+
+    [Fact]
+    public void Acpi_power_state_turns_on_boot_and_awake()
+    {
+        Assert.Equal(0x000F01BD, AsusAura.AcpiPowerBootAndAwake);
+    }
+}
+
 public class AsusDetectionTests
 {
     [Fact]

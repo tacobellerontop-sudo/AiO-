@@ -16,7 +16,7 @@ public static class StartupApplier
         var settings = services.Settings.Current;
         Try("colour", () => ApplyColor(services, settings));
         if (services.Asus is { } asus) Try("ASUS", () => ApplyAsus(asus, settings.Asus));
-        if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus));
+        if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus, services.Asus));
     }
 
     private static void Try(string area, Action action)
@@ -63,10 +63,12 @@ public static class StartupApplier
         }
     }
 
-    public static void ApplyAura(AsusSettings s)
+    /// <summary>Applies brightness and effect over every channel the laptop has; returns what was reached.</summary>
+    public static AuraResult ApplyAura(AsusSettings s, AsusLaptop? asus)
     {
-        if (!AsusAura.IsAvailable()) return;
-        AsusAura.SetBrightness(s.KeyboardBrightness);
-        AsusAura.SetMode(s.AuraMode, RgbColor.FromHex(s.AuraColor), RgbColor.FromHex(s.AuraColor2), s.AuraSpeed);
+        var acpi = asus?.Acpi;
+        var brightness = AsusAura.SetBrightness(s.KeyboardBrightness, acpi);
+        var mode = AsusAura.SetMode(s.AuraMode, RgbColor.FromHex(s.AuraColor), RgbColor.FromHex(s.AuraColor2), s.AuraSpeed, acpi);
+        return new AuraResult(Math.Max(brightness.HidDevicesWritten, mode.HidDevicesWritten), brightness.AcpiUsed || mode.AcpiUsed);
     }
 }

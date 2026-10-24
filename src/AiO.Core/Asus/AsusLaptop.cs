@@ -197,10 +197,13 @@ public sealed class AsusLaptop : IDisposable
             _acpi.Set(AsusDeviceIds.GpuTempTarget, Math.Clamp(temp, 75, 87));
     }
 
-    // ---- Keyboard (TUF models without an Aura HID device) -------------------
+    // ---- Keyboard ------------------------------------------------------------
 
-    public void SetAcpiKeyboardBrightness(int level) =>
-        _acpi.Set(AsusDeviceIds.KeyboardBrightnessAcpi, 0x80 | (Math.Clamp(level, 0, 3) & 0x7F));
+    /// <summary>The raw driver, for the TUF/Vivobook keyboard lighting channel in <see cref="AsusAura"/>.</summary>
+    public AsusAcpi Acpi => _acpi;
+
+    /// <summary>TUF/Vivobook-style RGB keyboards are driven through ACPI rather than HID.</summary>
+    public bool SupportsAcpiKeyboardRgb => _acpi.IsSupported(0x00100056);
 
     public void Dispose() => _acpi.Dispose();
 }

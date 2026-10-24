@@ -158,6 +158,13 @@ public sealed class HidConnection : IDisposable
             throw new Win32Exception(Marshal.GetLastWin32Error(), "HidD_SetFeature failed");
     }
 
+    /// <summary>Sends an output report (WriteFile). <paramref name="report"/>[0] is the report id.</summary>
+    public void WriteOutput(byte[] report)
+    {
+        if (!Kernel32.WriteFile(_handle, report, (uint)report.Length, out _, IntPtr.Zero))
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "HID output report write failed");
+    }
+
     /// <summary>Reads a feature report into <paramref name="report"/>; set [0] to the report id first.</summary>
     public void GetFeature(byte[] report)
     {
