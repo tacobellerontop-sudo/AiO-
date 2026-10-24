@@ -4,12 +4,14 @@ using AiO.App.Infrastructure;
 
 namespace AiO.App.ViewModels;
 
-public sealed class NavItem(string title, string glyph, Func<object> createPage)
+public sealed class NavItem(string title, string glyph, string group, Func<object> createPage)
 {
     private object? _page;
 
     public string Title { get; } = title;
     public string Glyph { get; } = glyph;
+    /// <summary>Sidebar section heading.</summary>
+    public string Group { get; } = group;
     /// <summary>Created on first visit so hardware is only probed for pages the user opens.</summary>
     public object Page => _page ??= createPage();
 }
@@ -25,21 +27,30 @@ public sealed class MainViewModel : ObservableObject
     public AsusViewModel? Asus { get; private set; }
 
     public const string AsusPageTitle = "ASUS · G-Helper";
+    private const string DisplayGroup = "DISPLAY", InputGroup = "INPUT", SystemGroup = "SYSTEM";
+
+    /// <summary>Created up front: the keyboard hook runs whether or not its page is open.</summary>
+    public KeyboardViewModel Keyboard { get; }
+
+    public string Version => "Version " + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "");
 
     public MainViewModel()
     {
         LoadAsus();
+        Keyboard = new KeyboardViewModel(() => Asus);
 
         // Segoe Fluent Icons / MDL2 glyphs.
         var pages = new List<NavItem>
         {
-            new("Displays", "\uE7F4", () => new Views.DisplaysPage { DataContext = new DisplaysViewModel() }),
-            new("Colour", "\uE790", () => new Views.ColorPage { DataContext = new ColorViewModel() }),
-            new("Razer & RGB", "\uE962", () => new Views.RazerPage { DataContext = new RazerViewModel() }),
+            new("Displays", "\uE7F4", DisplayGroup, () => new Views.DisplaysPage { DataContext = new DisplaysViewModel() }),
+            new("Colour", "\uE790", DisplayGroup, () => new Views.ColorPage { DataContext = new ColorViewModel() }),
+            new("Mouse", "\uE962", InputGroup, () => new Views.MousePage { DataContext = new MouseViewModel() }),
+            new("Keyboard", "\uE765", InputGroup, () => new Views.KeyboardPage { DataContext = Keyboard }),
+            new("Razer & RGB", "\uEA80", InputGroup, () => new Views.RazerPage { DataContext = new RazerViewModel() }),
+            // Always listed so it's discoverable; explains itself when the laptop isn't supported.
+            CreateAsusPage(),
+            new("Settings", "\uE713", SystemGroup, () => new Views.SettingsPage { DataContext = new SettingsViewModel() }),
         };
-        // Always listed so it's discoverable; explains itself when the laptop isn't supported.
-        pages.Add(CreateAsusPage());
-        pages.Add(new("Settings", "\uE713", () => new Views.SettingsPage { DataContext = new SettingsViewModel() }));
         Pages = new ObservableCollection<NavItem>(pages);
         _selected = Pages[0];
 
@@ -78,8 +89,8 @@ public sealed class MainViewModel : ObservableObject
     }
 
     private NavItem CreateAsusPage() => Asus is { } asus
-        ? new(AsusPageTitle, "\uE7F8", () => new Views.AsusPage { DataContext = asus })
-        : new(AsusPageTitle, "\uE7F8", () => new Views.AsusUnavailablePage { DataContext = new AsusUnavailableViewModel(ReloadAsus) });
+        ? new(AsusPageTitle, "\uE7F8", SystemGroup, () => new Views.AsusPage { DataContext = asus })
+        : new(AsusPageTitle, "\uE7F8", SystemGroup, () => new Views.AsusUnavailablePage { DataContext = new AsusUnavailableViewModel(ReloadAsus) });
 
     /// <summary>Re-detects the ASUS driver and rebuilds the ASUS page in place (no app restart).</summary>
     public void ReloadAsus()

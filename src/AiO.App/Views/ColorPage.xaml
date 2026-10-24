@@ -3,22 +3,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <TextBlock Text="Colour" Style="{StaticResource PageTitle}" />
-        <TextBlock Style="{StaticResource PageSubtitle}"
-                   Text="Three layers of colour control: the monitor itself (DDC/CI), the GPU driver (NVIDIA / AMD), and a software gamma ramp that works everywhere. AiO re-applies your settings each time it starts." />
-
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-            <TextBlock Text="Display" Style="{StaticResource Label}" />
-            <ComboBox ItemsSource="{Binding Displays}" SelectedItem="{Binding SelectedDisplay}" Width="320" />
-            <Button Content="Refresh" Command="{Binding ReloadCommand}" Margin="8,0,0,0" />
-        </StackPanel>
+        <c:PageHeader Glyph="&#xE790;" Title="Colour"
+                      Subtitle="Three layers of colour control: the monitor itself (DDC/CI), the GPU driver (NVIDIA / AMD), and a software gamma ramp that works everywhere. AiO re-applies your settings each time it starts.">
+            <StackPanel Orientation="Horizontal">
+                <ComboBox ItemsSource="{Binding Displays}" SelectedItem="{Binding SelectedDisplay}" Width="260" />
+                <Button Content="Refresh" Command="{Binding ReloadCommand}" Margin="8,0,0,0" />
+            </StackPanel>
+        </c:PageHeader>
 
         <!-- Monitor (DDC/CI) -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="Monitor (DDC/CI)" Style="{StaticResource CardTitle}" />
-                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
-                           Text="Changes the monitor's own settings, as if you used its buttons." />
+                <c:CardHeader Glyph="&#xE7F8;" Title="Monitor (DDC/CI)" Subtitle="Changes the monitor's own settings, as if you used its buttons." />
                 <TextBlock Text="Reading monitor…" Style="{StaticResource Muted}"
                            Visibility="{Binding DdcLoading, Converter={StaticResource Visible}}" />
                 <TextBlock Style="{StaticResource Muted}" Visibility="{Binding ShowNoDdc, Converter={StaticResource Visible}}"
@@ -42,14 +38,10 @@
         <!-- GPU driver -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Reset" Command="{Binding ResetGpuCommand}"
+                <c:CardHeader Glyph="&#xE950;" Title="GPU colour" Subtitle="{Binding GpuVendorText}">
+                    <Button Content="Reset" Command="{Binding ResetGpuCommand}"
                             Visibility="{Binding HasGpuControls, Converter={StaticResource Visible}}" />
-                    <StackPanel>
-                        <TextBlock Text="GPU colour" Style="{StaticResource CardTitle}" />
-                        <TextBlock Text="{Binding GpuVendorText}" Style="{StaticResource Muted}" Margin="0,0,0,12" />
-                    </StackPanel>
-                </DockPanel>
+                </c:CardHeader>
                 <TextBlock Style="{StaticResource Muted}" Text="The GPU driver offers no colour controls for this display."
                            Visibility="{Binding HasGpuControls, Converter={StaticResource Hidden}}" />
                 <ItemsControl ItemsSource="{Binding GpuProperties}">
@@ -65,14 +57,10 @@
         <!-- Gamma ramp -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Reset" Command="{Binding ResetGammaCommand}" />
-                    <StackPanel>
-                        <TextBlock Text="Software colour" Style="{StaticResource CardTitle}" />
-                        <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
-                                   Text="Gamma-ramp adjustments that work on any GPU and monitor. Windows Night Light overrides these while it's on." />
-                    </StackPanel>
-                </DockPanel>
+                <c:CardHeader Glyph="&#xE706;" Title="Software colour"
+                              Subtitle="Gamma-ramp adjustments that work on any GPU and monitor. Windows Night Light overrides these while it's on.">
+                    <Button Content="Reset" Command="{Binding ResetGammaCommand}" />
+                </c:CardHeader>
                 <c:SliderRow Label="Colour temperature" Minimum="1900" Maximum="10000" Step="100" Format="{}{0:0} K" Value="{Binding Temperature}" />
                 <c:SliderRow Label="Gamma" Minimum="0.5" Maximum="2.5" Step="0.05" Format="{}{0:0.00}" Value="{Binding GammaValue}" />
                 <c:SliderRow Label="Brightness" Minimum="-50" Maximum="50" Format="{}{0:+0;-0;0}" Value="{Binding Brightness}" />

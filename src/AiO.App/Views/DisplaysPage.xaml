@@ -1,23 +1,19 @@
 <UserControl x:Class="AiO.App.Views.DisplaysPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <DockPanel>
-            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshCommand}" VerticalAlignment="Top" />
-            <StackPanel>
-                <TextBlock Text="Displays" Style="{StaticResource PageTitle}" />
-                <TextBlock Style="{StaticResource PageSubtitle}"
-                           Text="Resolution, refresh rate, orientation, scaling and HDR for each connected display. If the screen goes blank after a change, wait 15 seconds and it reverts." />
-            </StackPanel>
-        </DockPanel>
+        <c:PageHeader Glyph="&#xE7F4;" Title="Displays"
+                      Subtitle="Resolution, refresh rate, orientation, scaling and HDR for each connected display. If the screen goes blank after a change, wait 15 seconds and it reverts.">
+            <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+        </c:PageHeader>
 
         <ItemsControl ItemsSource="{Binding Displays}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="{Binding Title}" Style="{StaticResource CardTitle}" />
-                            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" Margin="0,0,0,16" />
+                            <c:CardHeader Glyph="&#xE7F4;" Title="{Binding Title}" Subtitle="{Binding Subtitle}" Margin="0,0,0,18" />
 
                             <WrapPanel>
                                 <StackPanel Margin="0,0,16,12">

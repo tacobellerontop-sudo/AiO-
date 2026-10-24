@@ -45,6 +45,7 @@ public partial class App : Application
         if (services.Settings.Current.General.ApplyOnStartup) StartupApplier.ApplyAll(services);
 
         _viewModel = new MainViewModel();
+        _viewModel.Keyboard.OpenAiORequested = ShowMainWindow;
         _tray = new TrayIcon(services.Asus is not null);
         _tray.OpenRequested += ShowMainWindow;
         _tray.ExitRequested += ExitApp;
@@ -110,6 +111,7 @@ public partial class App : Application
         _exiting = true;
         _window?.Close();
         _tray?.Dispose();
+        _viewModel?.Keyboard.Dispose();
         AppServices.Instance.Dispose();
         Shutdown();
     }

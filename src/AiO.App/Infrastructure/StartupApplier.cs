@@ -1,5 +1,6 @@
 using AiO.Core.Asus;
 using AiO.Core.Color;
+using AiO.Core.Mouse;
 using AiO.Core.Razer;
 using AiO.Core.Settings;
 
@@ -17,6 +18,16 @@ public static class StartupApplier
         Try("colour", () => ApplyColor(services, settings));
         if (services.Asus is { } asus) Try("ASUS", () => ApplyAsus(asus, settings.Asus));
         if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus, services.Asus));
+        if (settings.Mouse.ReapplyRawAccelOnStartup && RawAccel.IsValidFolder(settings.Mouse.RawAccelFolder))
+        {
+            // writer.exe takes about a second; don't hold up start-up for it.
+            string folder = settings.Mouse.RawAccelFolder!;
+            Task.Run(() => Try("RawAccel", () =>
+            {
+                var result = RawAccel.Reapply(folder);
+                if (!result.Success) AppServices.Instance.Report(result.Message);
+            }));
+        }
     }
 
     private static void Try(string area, Action action)

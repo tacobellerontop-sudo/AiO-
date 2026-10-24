@@ -3,21 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <TextBlock Text="ASUS" Style="{StaticResource PageTitle}" />
-        <TextBlock Style="{StaticResource PageSubtitle}"
-                   Text="G-Helper-style control of ROG, TUF and Vivobook laptops through the ASUS ACPI driver, without Armoury Crate. Leave AiO running in the tray: the firmware forgets fan curves and charge limits on reboot, and AiO re-applies them." />
+        <c:PageHeader Glyph="&#xE7F8;" Title="ASUS · G-Helper"
+                      Subtitle="G-Helper-style control of ROG, TUF and Vivobook laptops through the ASUS ACPI driver, without Armoury Crate. Leave AiO running in the tray: the firmware forgets fan curves and charge limits on reboot, and AiO re-applies them." />
 
         <!-- Live sensors -->
         <Border Style="{StaticResource Card}" Padding="20,14">
-            <TextBlock Text="{Binding SensorText}" FontFamily="Cascadia Mono, Consolas" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE9D9;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource AccentHoverBrush}"
+                           VerticalAlignment="Center" Margin="0,0,12,0" />
+                <TextBlock Text="{Binding SensorText}" FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" />
+            </StackPanel>
         </Border>
 
         <!-- Performance mode -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="Performance mode" Style="{StaticResource CardTitle}" />
-                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
-                           Text="Silent keeps fans quiet, Balanced is the default, Turbo raises power limits and fan speeds." />
+                <c:CardHeader Glyph="&#xEC4A;" Title="Performance mode"
+                              Subtitle="Silent keeps fans quiet, Balanced is the default, Turbo raises power limits and fan speeds." />
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Style="{StaticResource Segment}" GroupName="Perf" Content="Silent"
                                  IsChecked="{Binding PerformanceMode, Converter={StaticResource EnumEquals}, ConverterParameter=Silent}" />
@@ -33,9 +35,8 @@
         <!-- GPU mode -->
         <Border Style="{StaticResource Card}" Visibility="{Binding SupportsGpuModes, Converter={StaticResource Visible}}">
             <StackPanel>
-                <TextBlock Text="GPU mode" Style="{StaticResource CardTitle}" />
-                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
-                           Text="Eco turns the dedicated GPU off to save battery. Standard switches automatically (Optimus). Ultimate connects the screen straight to the dedicated GPU (MUX) and needs a restart." />
+                <c:CardHeader Glyph="&#xE950;" Title="GPU mode"
+                              Subtitle="Eco turns the dedicated GPU off to save battery. Standard switches automatically (Optimus). Ultimate connects the screen straight to the dedicated GPU (MUX) and needs a restart." />
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Style="{StaticResource Segment}" GroupName="Gpu" Content="Eco"
                                  IsChecked="{Binding GpuMode, Converter={StaticResource EnumEquals}, ConverterParameter=Eco}" />
@@ -56,9 +57,8 @@
         <!-- Fans and power -->
         <Border Style="{StaticResource Card}" Visibility="{Binding SupportsFanCurves, Converter={StaticResource Visible}}">
             <StackPanel>
-                <TextBlock Text="Fans and power" Style="{StaticResource CardTitle}" />
-                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
-                           Text="Each performance mode has its own fan curves and power limits. Drag the points to shape a curve." />
+                <c:CardHeader Glyph="&#xE9CA;" Title="Fans and power"
+                              Subtitle="Each performance mode has its own fan curves and power limits. Drag the points to shape a curve." />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <TextBlock Text="Editing" Style="{StaticResource Label}" />
                     <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding EditingMode}" Width="140" />
@@ -108,7 +108,7 @@
         <!-- Battery and screen -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="Battery and screen" Style="{StaticResource CardTitle}" Margin="0,0,0,12" />
+                <c:CardHeader Glyph="&#xE83F;" Title="Battery and screen" />
                 <StackPanel Visibility="{Binding SupportsBatteryLimit, Converter={StaticResource Visible}}">
                     <c:SliderRow Label="Charge limit" Minimum="40" Maximum="100" Step="5" Format="{}{0:0}%" Value="{Binding BatteryLimit}" />
                     <StackPanel Orientation="Horizontal" Margin="150,4,0,12">
@@ -126,7 +126,7 @@
         <!-- Keyboard -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="Keyboard backlight" Style="{StaticResource CardTitle}" Margin="0,0,0,12" />
+                <c:CardHeader Glyph="&#xE765;" Title="Keyboard backlight" />
                 <c:SliderRow Label="Brightness" Minimum="0" Maximum="3" Format="{}{0:0}" Value="{Binding KeyboardBrightness}" />
                 <WrapPanel Visibility="{Binding AuraAvailable, Converter={StaticResource Visible}}" Margin="0,8,0,0">
                     <StackPanel Margin="0,0,16,10">

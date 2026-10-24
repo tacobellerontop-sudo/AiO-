@@ -1,0 +1,155 @@
+<UserControl x:Class="AiO.App.Views.KeyboardPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:AiO.App.Controls"
+             Focusable="True" PreviewKeyDown="OnPreviewKeyDown">
+    <UserControl.Resources>
+        <Style x:Key="Chip" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+        <Style x:Key="ModifierToggle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,6">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <c:PageHeader Glyph="&#xE765;" Title="Keyboard"
+                      Subtitle="Remap keys and shortcuts on any keyboard, launch apps, type snippets or switch ASUS modes. Works system-wide while AiO runs in the tray.">
+            <CheckBox Content="Remapping on" IsChecked="{Binding Enabled}" />
+        </c:PageHeader>
+
+        <Border Style="{StaticResource Card}" Padding="20,14">
+            <StackPanel>
+                <TextBlock Text="{Binding StatusText}" />
+                <TextBlock Text="{Binding AdminNote}" Style="{StaticResource Muted}" Margin="0,4,0,0"
+                           Visibility="{Binding AdminNote, Converter={StaticResource Visible}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Editor -->
+        <Border Style="{StaticResource Card}" BorderBrush="{StaticResource AccentBrush}"
+                Visibility="{Binding IsEditing, Converter={StaticResource Visible}}">
+            <StackPanel DataContext="{Binding Editor}">
+                <c:CardHeader Glyph="&#xE70F;" Title="Mapping" />
+
+                <TextBlock Text="{Binding RecordingText}" Foreground="{StaticResource AccentHoverBrush}" FontWeight="SemiBold" Margin="0,0,0,10"
+                           Visibility="{Binding IsRecording, Converter={StaticResource Visible}}" />
+
+                <TextBlock Text="When I press" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                <WrapPanel Margin="0,0,0,14">
+                    <ToggleButton Content="Ctrl" IsChecked="{Binding TriggerCtrl}" Style="{StaticResource ModifierToggle}" />
+                    <ToggleButton Content="Alt" IsChecked="{Binding TriggerAlt}" Style="{StaticResource ModifierToggle}" />
+                    <ToggleButton Content="Shift" IsChecked="{Binding TriggerShift}" Style="{StaticResource ModifierToggle}" />
+                    <ToggleButton Content="Win" IsChecked="{Binding TriggerWin}" Style="{StaticResource ModifierToggle}" />
+                    <ComboBox ItemsSource="{Binding Keys}" SelectedItem="{Binding TriggerKey}" Width="160" MaxDropDownHeight="360" Margin="4,0,8,0" />
+                    <Button Content="Record" Command="{Binding RecordTriggerCommand}" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource Muted}" Margin="0,-8,0,14" FontSize="12"
+                           Text="Without Ctrl/Alt/Shift/Win it remaps the key itself; with them it's a shortcut." />
+
+                <TextBlock Text="Do this" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                <ComboBox ItemsSource="{Binding Actions}" SelectedItem="{Binding Action}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,12" />
+
+                <WrapPanel Visibility="{Binding ShowTarget, Converter={StaticResource Visible}}" Margin="0,0,0,12">
+                    <ToggleButton Content="Ctrl" IsChecked="{Binding TargetCtrl}" Style="{StaticResource ModifierToggle}" />
+                    <ToggleButton Content="Alt" IsChecked="{Binding TargetAlt}" Style="{StaticResource ModifierToggle}" />
+                    <ToggleButton Content="Shift" IsChecked="{Binding TargetShift}" Style="{StaticResource ModifierToggle}" />
+                    <ToggleButton Content="Win" IsChecked="{Binding TargetWin}" Style="{StaticResource ModifierToggle}" />
+                    <ComboBox ItemsSource="{Binding Keys}" SelectedItem="{Binding TargetKey}" Width="160" MaxDropDownHeight="360" Margin="4,0,8,0" />
+                    <Button Content="Record" Command="{Binding RecordTargetCommand}" />
+                </WrapPanel>
+                <TextBox Text="{Binding Text}" AcceptsReturn="True" MinHeight="60" TextWrapping="Wrap" Margin="0,0,0,12"
+                         Visibility="{Binding ShowText, Converter={StaticResource Visible}}" />
+                <DockPanel Visibility="{Binding ShowCommand, Converter={StaticResource Visible}}" Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Left" Text="Program, file or URL" Style="{StaticResource Label}" />
+                    <TextBox Text="{Binding Command}" />
+                </DockPanel>
+
+                <DockPanel Margin="0,0,0,16">
+                    <TextBlock DockPanel.Dock="Left" Text="Only in app (optional)" Style="{StaticResource Label}" />
+                    <TextBox Text="{Binding AppFilter}" ToolTip="Process name, e.g. chrome or chrome.exe. Separate several with commas." />
+                </DockPanel>
+
+                <StackPanel Orientation="Horizontal" DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <Button Content="Save" Style="{StaticResource AccentButton}" Command="{Binding SaveCommand}" Margin="0,0,8,0" />
+                    <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Mappings -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE8FD;" Title="Mappings">
+                    <Button Content="Add mapping" Style="{StaticResource AccentButton}" Command="{Binding AddCommand}" />
+                </c:CardHeader>
+                <TextBlock Style="{StaticResource Muted}" Text="No mappings yet. Add one, or start from a preset below."
+                           Visibility="{Binding HasMappings, Converter={StaticResource Hidden}}" />
+                <ItemsControl ItemsSource="{Binding Mappings}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,10">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox IsChecked="{Binding Enabled}" Margin="0,0,10,0" ToolTip="Enabled" />
+                                        <Button Content="&#xE70F;" FontFamily="{StaticResource IconFont}" Command="{Binding EditCommand}" ToolTip="Edit" Margin="0,0,6,0" />
+                                        <Button Content="&#xE74D;" FontFamily="{StaticResource IconFont}" Command="{Binding DeleteCommand}" ToolTip="Delete" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Style="{StaticResource Chip}">
+                                            <TextBlock Text="{Binding Trigger}" FontWeight="SemiBold" />
+                                        </Border>
+                                        <TextBlock Text="&#xE72A;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource TextMutedBrush}"
+                                                   VerticalAlignment="Center" Margin="12,0" />
+                                        <Border Style="{StaticResource Chip}">
+                                            <TextBlock Text="{Binding Result}" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Scope}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="14,0,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Presets -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE734;" Title="Presets" Subtitle="Opens the editor pre-filled, so you can tweak before saving." />
+                <WrapPanel>
+                    <Button Content="Caps Lock → Esc" Command="{Binding PresetCommand}" CommandParameter="caps-esc" Margin="0,0,8,8" />
+                    <Button Content="Caps Lock → Ctrl" Command="{Binding PresetCommand}" CommandParameter="caps-ctrl" Margin="0,0,8,8" />
+                    <Button Content="Disable Windows key" Command="{Binding PresetCommand}" CommandParameter="no-win" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+T → Terminal" Command="{Binding PresetCommand}" CommandParameter="terminal" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+M → next ASUS mode" Command="{Binding PresetCommand}" CommandParameter="asus-mode" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+E → type e-mail" Command="{Binding PresetCommand}" CommandParameter="email" Margin="0,0,8,8" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

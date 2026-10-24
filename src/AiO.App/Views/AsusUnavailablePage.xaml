@@ -1,15 +1,13 @@
 <UserControl x:Class="AiO.App.Views.AsusUnavailablePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <TextBlock Text="ASUS · G-Helper" Style="{StaticResource PageTitle}" />
-        <TextBlock Style="{StaticResource PageSubtitle}"
-                   Text="G-Helper-style controls for ASUS laptops, without Armoury Crate." />
+        <c:PageHeader Glyph="&#xE7F8;" Title="ASUS · G-Helper" Subtitle="G-Helper-style controls for ASUS laptops, without Armoury Crate." />
 
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="Controls not available on this PC" Style="{StaticResource CardTitle}" />
-                <TextBlock Text="{Binding Machine}" Style="{StaticResource Muted}" Margin="0,0,0,12" />
+                <c:CardHeader Glyph="&#xE7BA;" Title="Controls not available on this PC" Subtitle="{Binding Machine}" />
                 <TextBox Text="{Binding Message, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"
                          Background="Transparent" Padding="0" Margin="0,0,0,16" />
                 <WrapPanel>
@@ -24,7 +22,7 @@
 
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="What this page does on supported laptops" Style="{StaticResource CardTitle}" Margin="0,0,0,8" />
+                <c:CardHeader Glyph="&#xE946;" Title="What this page does on supported laptops" />
                 <TextBlock Style="{StaticResource Muted}" LineHeight="22" TextWrapping="Wrap">
                     • Performance modes: Silent, Balanced, Turbo (and the matching Windows power mode)<LineBreak />
                     • GPU modes: Eco (dGPU off), Standard (Optimus), Ultimate (MUX)<LineBreak />

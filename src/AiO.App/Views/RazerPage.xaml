@@ -3,14 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <DockPanel>
-            <Button DockPanel.Dock="Right" Content="Scan again" Command="{Binding ScanCommand}" VerticalAlignment="Top" />
-            <StackPanel>
-                <TextBlock Text="Razer &amp; RGB" Style="{StaticResource PageTitle}" />
-                <TextBlock Style="{StaticResource PageSubtitle}"
-                           Text="AiO talks to Razer devices directly (the protocol documented by OpenRazer), so Synapse isn't needed. Close Synapse first; both fighting over the device gives odd results. For lighting on any brand, connect to OpenRGB below." />
-            </StackPanel>
-        </DockPanel>
+        <c:PageHeader Glyph="&#xEA80;" Title="Razer &amp; RGB"
+                      Subtitle="AiO talks to Razer devices directly (the protocol documented by OpenRazer), so Synapse isn't needed. Close Synapse first; both fighting over the device gives odd results. For lighting on any brand, connect to OpenRGB below.">
+            <Button Content="Scan again" Command="{Binding ScanCommand}" />
+        </c:PageHeader>
 
         <TextBlock Text="Looking for Razer devices…" Style="{StaticResource Muted}" Margin="0,0,0,16"
                    Visibility="{Binding Scanning, Converter={StaticResource Visible}}" />
@@ -24,8 +20,7 @@
                 <DataTemplate>
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitle}" />
-                            <TextBlock Text="{Binding Details}" Style="{StaticResource Muted}" Margin="0,0,0,14" />
+                            <c:CardHeader Glyph="&#xE962;" Title="{Binding Name}" Subtitle="{Binding Details}" />
 
                             <!-- Sensor -->
                             <StackPanel Visibility="{Binding IsMouse, Converter={StaticResource Visible}}" Margin="0,0,0,10">
@@ -75,9 +70,8 @@
         <!-- OpenRGB -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="OpenRGB" Style="{StaticResource CardTitle}" />
-                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
-                           Text="OpenRGB is a free, open-source RGB controller for Razer, Corsair, Logitech, ASUS Aura, motherboards, RAM and more. Run it with Settings → SDK Server enabled, then connect." />
+                <c:CardHeader Glyph="&#xE781;" Title="OpenRGB"
+                              Subtitle="OpenRGB is a free, open-source RGB controller for Razer, Corsair, Logitech, ASUS Aura, motherboards, RAM and more. Run it with Settings → SDK Server enabled, then connect." />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Host" Style="{StaticResource Label}" />
                     <TextBox Text="{Binding OpenRgb.Host}" Width="140" />

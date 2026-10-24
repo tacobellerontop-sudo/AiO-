@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using AiO.Core.Asus;
 using AiO.Core.Color;
 using AiO.Core.Gpu;
+using AiO.Core.Keyboard;
 
 namespace AiO.Core.Settings;
 
@@ -13,6 +14,16 @@ public sealed class AppSettings
     public AsusSettings Asus { get; set; } = new();
     public Dictionary<string, RazerDeviceSettings> Razer { get; set; } = new();
     public OpenRgbSettings OpenRgb { get; set; } = new();
+    public MouseSettings Mouse { get; set; } = new();
+    public KeyboardSettings Keyboard { get; set; } = new();
+}
+
+public sealed class MouseSettings
+{
+    /// <summary>Folder of the RawAccel release (contains writer.exe).</summary>
+    public string? RawAccelFolder { get; set; }
+    /// <summary>RawAccel's driver forgets its curve on reboot; AiO re-sends it at start-up.</summary>
+    public bool ReapplyRawAccelOnStartup { get; set; } = true;
 }
 
 public sealed class GeneralSettings
