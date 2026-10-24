@@ -16,6 +16,8 @@ public sealed class AppSettings
     public OpenRgbSettings OpenRgb { get; set; } = new();
     public MouseSettings Mouse { get; set; } = new();
     public KeyboardSettings Keyboard { get; set; } = new();
+    /// <summary>User-made colour presets (built-in ones live in <see cref="ColorPreset.BuiltIn"/>).</summary>
+    public List<ColorPreset> ColorPresets { get; set; } = [];
 }
 
 public sealed class MouseSettings
@@ -40,6 +42,8 @@ public sealed class DisplayColorSettings
     public ColorAdjustment Gamma { get; set; } = ColorAdjustment.Neutral;
     /// <summary>GPU driver colour values (vibrance, hue...) the user changed.</summary>
     public Dictionary<GpuColorProperty, int> Gpu { get; set; } = new();
+    /// <summary>Name of the preset last applied to this display, if any.</summary>
+    public string? Preset { get; set; }
 }
 
 public sealed class FanCurveSetting
@@ -159,11 +163,17 @@ public sealed class SettingsStore
         return Current;
     }
 
+    private readonly object _saveLock = new();
+
+    /// <summary>Thread-safe: presets and hotkeys save from background threads too.</summary>
     public void Save()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        string temp = _path + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(Current, Options));
-        File.Move(temp, _path, overwrite: true);
+        lock (_saveLock)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            string temp = _path + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(Current, Options));
+            File.Move(temp, _path, overwrite: true);
+        }
     }
 }

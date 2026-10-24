@@ -83,6 +83,8 @@
                 </WrapPanel>
                 <TextBox Text="{Binding Text}" AcceptsReturn="True" MinHeight="60" TextWrapping="Wrap" Margin="0,0,0,12"
                          Visibility="{Binding ShowText, Converter={StaticResource Visible}}" />
+                <ComboBox ItemsSource="{Binding PresetNames}" SelectedItem="{Binding PresetName}" Width="200" HorizontalAlignment="Left"
+                          Margin="0,0,0,12" Visibility="{Binding ShowPreset, Converter={StaticResource Visible}}" />
                 <DockPanel Visibility="{Binding ShowCommand, Converter={StaticResource Visible}}" Margin="0,0,0,12">
                     <TextBlock DockPanel.Dock="Left" Text="Program, file or URL" Style="{StaticResource Label}" />
                     <TextBox Text="{Binding Command}" />
@@ -148,6 +150,8 @@
                     <Button Content="Ctrl+Alt+T → Terminal" Command="{Binding PresetCommand}" CommandParameter="terminal" Margin="0,0,8,8" />
                     <Button Content="Ctrl+Alt+M → next ASUS mode" Command="{Binding PresetCommand}" CommandParameter="asus-mode" Margin="0,0,8,8" />
                     <Button Content="Ctrl+Alt+E → type e-mail" Command="{Binding PresetCommand}" CommandParameter="email" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+V → Vivid colours" Command="{Binding PresetCommand}" CommandParameter="vivid" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+D → Default colours" Command="{Binding PresetCommand}" CommandParameter="default-colors" Margin="0,0,8,8" />
                 </WrapPanel>
             </StackPanel>
         </Border>

@@ -15,12 +15,25 @@ public sealed class TrayIcon : IDisposable
     public event Action? OpenRequested;
     public event Action? ExitRequested;
     public event Action<AsusPerformanceMode>? PerformanceModeRequested;
+    public event Action<string>? ColorPresetRequested;
 
-    public TrayIcon(bool showAsusModes)
+    public TrayIcon(bool showAsusModes, Func<IEnumerable<string>> colorPresetNames)
     {
         _image = CreateIcon();
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open AiO", null, (_, _) => OpenRequested?.Invoke());
+
+        // Rebuilt each time the menu opens so new presets show up.
+        var presets = new ToolStripMenuItem("Colour preset");
+        presets.DropDownItems.Add("(loading)");
+        menu.Opening += (_, _) =>
+        {
+            presets.DropDownItems.Clear();
+            foreach (var name in colorPresetNames())
+                presets.DropDownItems.Add(name, null, (_, _) => ColorPresetRequested?.Invoke(name));
+        };
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(presets);
         if (showAsusModes)
         {
             menu.Items.Add(new ToolStripSeparator());

@@ -11,6 +11,75 @@
             </StackPanel>
         </c:PageHeader>
 
+        <!-- Presets -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE790;" Title="Presets" Subtitle="{Binding ActivePresetText}" />
+                <ItemsControl ItemsSource="{Binding Presets}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Width="200" Margin="0,0,10,10">
+                                <Button Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" ToolTip="Apply to this display" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1.5" CornerRadius="10" Padding="12,10">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="22" Height="22" Fill="{Binding Swatch, Converter={StaticResource HexToBrush}}"
+                                                 Stroke="{StaticResource BorderBrush}" StrokeThickness="1" VerticalAlignment="Center" />
+                                        <StackPanel Margin="10,0,0,0" Width="130">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Details}" Style="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0">
+                                    <Button Content="&#xE7F4;" FontFamily="{StaticResource IconFont}" FontSize="10" Padding="5,3" BorderThickness="0" Background="Transparent"
+                                            ToolTip="Apply to all displays"
+                                            Command="{Binding DataContext.ApplyPresetToAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
+                                    <Button Content="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="10" Padding="5,3" BorderThickness="0" Background="Transparent"
+                                            ToolTip="Delete preset" Visibility="{Binding IsBuiltIn, Converter={StaticResource Hidden}}"
+                                            Command="{Binding DataContext.DeletePresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <DockPanel Margin="0,8,0,0">
+                    <Button DockPanel.Dock="Right" Content="Save current as preset" Style="{StaticResource AccentButton}"
+                            Command="{Binding SavePresetCommand}" Margin="8,0,0,0" />
+                    <TextBlock DockPanel.Dock="Left" Text="New preset" Style="{StaticResource Label}" />
+                    <TextBox Text="{Binding NewPresetName, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+                <CheckBox Content="Include the monitor's brightness and contrast (DDC/CI)" IsChecked="{Binding IncludeMonitorInPreset}"
+                          Margin="0,8,0,0" Visibility="{Binding HasDdc, Converter={StaticResource Visible}}" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0"
+                           Text="Tip: switch presets from the tray icon, or bind one to a shortcut on the Keyboard page." />
+            </StackPanel>
+        </Border>
+
         <!-- Monitor (DDC/CI) -->
         <Border Style="{StaticResource Card}">
             <StackPanel>

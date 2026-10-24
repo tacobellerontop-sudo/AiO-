@@ -140,6 +140,8 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
             "terminal" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'T'), Action = KeyActionType.Run, Command = "wt.exe", Target = null },
             "asus-mode" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'M'), Action = KeyActionType.CycleAsusMode, Target = null },
             "email" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'E'), Action = KeyActionType.TypeText, Text = "you@example.com", Target = null },
+            "vivid" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'V'), Action = KeyActionType.ApplyColorPreset, Text = "Vivid", Target = null },
+            "default-colors" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'D'), Action = KeyActionType.ApplyColorPreset, Text = "Default", Target = null },
             _ => null,
         };
         if (m is not null) BeginEdit(m, isNew: true);
@@ -189,6 +191,10 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
                         _ => AsusPerformanceMode.Silent,
                     };
                 });
+                break;
+            case KeyActionType.ApplyColorPreset:
+                if (ColorPresets.Find(m.Text) is { } preset) _ = ColorPresets.ApplyToAllAsync(preset);
+                else _services.Report($"No colour preset called \"{m.Text}\".");
                 break;
             case KeyActionType.OpenAiO:
                 Application.Current.Dispatcher.BeginInvoke(() => OpenAiORequested?.Invoke());
@@ -243,6 +249,7 @@ public sealed class MappingEditor : ObservableObject
             _targetKey = Item(t.Key);
         }
         Text = m.Text ?? "";
+        PresetName = m.Action == KeyActionType.ApplyColorPreset ? m.Text : PresetNames.FirstOrDefault();
         Command = m.Command ?? "";
         AppFilter = m.AppFilter ?? "";
 
@@ -278,11 +285,15 @@ public sealed class MappingEditor : ObservableObject
             OnPropertyChanged(nameof(ShowTarget));
             OnPropertyChanged(nameof(ShowText));
             OnPropertyChanged(nameof(ShowCommand));
+            OnPropertyChanged(nameof(ShowPreset));
         }
     }
 
     public bool ShowTarget => Action == KeyActionType.SendKeys;
     public bool ShowText => Action == KeyActionType.TypeText;
+    public bool ShowPreset => Action == KeyActionType.ApplyColorPreset;
+    public IReadOnlyList<string> PresetNames { get; } = ColorPresets.All.Select(p => p.Name).ToList();
+    public string? PresetName { get; set; }
     public bool ShowCommand => Action == KeyActionType.Run;
 
     public bool TargetCtrl { get => _targetCtrl; set => Set(ref _targetCtrl, value); }
@@ -337,7 +348,12 @@ public sealed class MappingEditor : ObservableObject
         Target = Action == KeyActionType.SendKeys && TargetKey is { } key
             ? new KeyChord(Join(TargetCtrl, TargetAlt, TargetShift, TargetWin), key.Vk)
             : null,
-        Text = Action == KeyActionType.TypeText ? Text : null,
+        Text = Action switch
+        {
+            KeyActionType.TypeText => Text,
+            KeyActionType.ApplyColorPreset => PresetName,
+            _ => null,
+        },
         Command = Action == KeyActionType.Run ? Command : null,
         AppFilter = string.IsNullOrWhiteSpace(AppFilter) ? null : AppFilter.Trim(),
     };

@@ -17,6 +17,7 @@ settings at start-up.
 | **Colour → Monitor** | Brightness, contrast, RGB gain, volume, input source, set in the monitor itself | DDC/CI (`dxva2.dll`) |
 | **Colour → GPU** | NVIDIA digital vibrance and hue; AMD saturation, hue, brightness and contrast | NVAPI, AMD Display Library (ADL) |
 | **Colour → Software** | Colour temperature, gamma, brightness, contrast, per-channel gain on any GPU | GPU gamma ramp |
+| **Colour → Presets** | Built-in (Default, Vivid, Competitive, Movie, Reading, Night) and your own presets combining software colour, GPU vibrance and monitor brightness/contrast; switch from the tray or a keyboard shortcut | All of the above |
 | **Mouse** | RawAccel acceleration curves (linear, classic, natural, synchronous, power, jump) with a live graph; Windows pointer speed and Enhance Pointer Precision | [RawAccel](https://github.com/a1xd/rawaccel)'s signed driver: AiO edits its `settings.json` and runs its `writer.exe` |
 | **Keyboard** | Remap any key, remap shortcuts, launch apps, type text, cycle ASUS modes; optionally only inside specific apps. Works with any keyboard | Low-level keyboard hook, like PowerToys Keyboard Manager |
 | **Razer & RGB** | DPI, polling rate, lighting effects, brightness and battery for Razer devices, **without Synapse** | Razer HID protocol as documented by [OpenRazer](https://github.com/openrazer/openrazer) |

@@ -43,6 +43,8 @@ public enum KeyActionType
     CycleAsusMode,
     /// <summary>Show the AiO window.</summary>
     OpenAiO,
+    /// <summary>Apply the colour preset named in <see cref="KeyMapping.Text"/> to every display.</summary>
+    ApplyColorPreset,
 }
 
 public sealed class KeyMapping
@@ -72,6 +74,7 @@ public sealed class KeyMapping
         KeyActionType.Run => $"Run {Command}",
         KeyActionType.CycleAsusMode => "Next ASUS performance mode",
         KeyActionType.OpenAiO => "Open AiO",
+        KeyActionType.ApplyColorPreset => $"Colour preset \"{Text}\"",
         _ => Action.ToString(),
     };
 

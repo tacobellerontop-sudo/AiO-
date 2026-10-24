@@ -59,8 +59,112 @@ public sealed class ColorViewModel : ObservableObject
     public ICommand ApplyInputCommand { get; }
     public ICommand ReloadCommand { get; }
 
+    // ---- Presets -----------------------------------------------------------------
+
+    private string _newPresetName = "";
+    private bool _includeMonitor = true;
+
+    public ObservableCollection<PresetItemViewModel> Presets { get; } = [];
+    public string NewPresetName { get => _newPresetName; set => Set(ref _newPresetName, value); }
+    /// <summary>Also store the monitor's own brightness/contrast (DDC/CI) in the saved preset.</summary>
+    public bool IncludeMonitorInPreset { get => _includeMonitor; set => Set(ref _includeMonitor, value); }
+    public string ActivePresetText => SavedForSelected?.Preset is { } name ? $"Active: {name}" : "Custom settings";
+
+    public ICommand ApplyPresetCommand { get; }
+    public ICommand SavePresetCommand { get; }
+    public ICommand DeletePresetCommand { get; }
+    public ICommand ApplyPresetToAllCommand { get; }
+
+    private void RefreshPresets()
+    {
+        string? active = SavedForSelected?.Preset;
+        Presets.Clear();
+        foreach (var preset in ColorPresets.All)
+            Presets.Add(new PresetItemViewModel(preset, string.Equals(preset.Name, active, StringComparison.OrdinalIgnoreCase)));
+        OnPropertyChanged(nameof(ActivePresetText));
+    }
+
+    private DdcMonitor? SelectedMonitor =>
+        _ddcMonitors.FirstOrDefault(m => m.DeviceName.Equals(_selected?.DeviceName, StringComparison.OrdinalIgnoreCase));
+
+    private async Task ApplyPresetAsync(object? parameter)
+    {
+        if (parameter is not PresetItemViewModel item || _selected is null) return;
+        string device = _selected.DeviceName;
+        var monitor = SelectedMonitor;
+        await _ddcGate.WaitAsync();
+        try
+        {
+            await Task.Run(() => ColorPresets.Apply(device, item.Preset, monitor));
+        }
+        finally
+        {
+            _ddcGate.Release();
+        }
+        LoadDisplay();
+        _services.Report($"\"{item.Name}\" applied to {_selected.FriendlyName}.");
+    }
+
+    private async Task ApplyPresetToAllAsync(object? parameter)
+    {
+        if (parameter is not PresetItemViewModel item) return;
+        await ColorPresets.ApplyToAllAsync(item.Preset);
+        LoadDisplay();
+    }
+
+    private void SavePreset()
+    {
+        string name = NewPresetName.Trim();
+        if (name.Length == 0) { _services.Report("Type a name for the preset first."); return; }
+
+        var saturation = GpuProperties.FirstOrDefault(p => p.Property == GpuColorProperty.Saturation);
+        double? Fraction(byte code) =>
+            IncludeMonitorInPreset && DdcControls.FirstOrDefault(c => c.Code == code) is { Maximum: > 0 } c ? c.Value / c.Maximum : null;
+
+        var preset = new ColorPreset
+        {
+            Name = name,
+            Gamma = _gamma,
+            Saturation = saturation is null ? null
+                : ColorPresetMath.ToRelative(new GpuColorRange(saturation.Value, saturation.Default, saturation.Min, saturation.Max), saturation.Value),
+            MonitorBrightness = Fraction(VcpCode.Brightness),
+            MonitorContrast = Fraction(VcpCode.Contrast),
+        };
+        if (!ColorPresets.SaveUserPreset(preset))
+        {
+            _services.Report($"\"{name}\" is a built-in preset name; pick another.");
+            return;
+        }
+        if (SavedForSelected is { } saved) saved.Preset = name;
+        _services.SaveSettings();
+        NewPresetName = "";
+        RefreshPresets();
+        _services.Report($"Saved preset \"{name}\".");
+    }
+
+    private void DeletePreset(object? parameter)
+    {
+        if (parameter is not PresetItemViewModel { IsBuiltIn: false } item) return;
+        ColorPresets.DeleteUserPreset(item.Name);
+        RefreshPresets();
+    }
+
+    /// <summary>Any manual change means the display no longer matches a preset.</summary>
+    private void MarkCustom()
+    {
+        if (SavedForSelected is { Preset: not null } saved)
+        {
+            saved.Preset = null;
+            RefreshPresets();
+        }
+    }
+
     public ColorViewModel()
     {
+        ApplyPresetCommand = new AsyncCommand(ApplyPresetAsync);
+        ApplyPresetToAllCommand = new AsyncCommand(ApplyPresetToAllAsync);
+        SavePresetCommand = new RelayCommand(SavePreset);
+        DeletePresetCommand = new RelayCommand(DeletePreset);
         ResetGammaCommand = new RelayCommand(() => Gamma = ColorAdjustment.Neutral);
         ResetGpuCommand = new RelayCommand(ResetGpu);
         UnlockRangeCommand = new RelayCommand(UnlockRange);
@@ -105,6 +209,7 @@ public sealed class ColorViewModel : ObservableObject
         }
         OnPropertyChanged(nameof(HasGpuControls));
         PopulateDdcControls();
+        RefreshPresets();
     }
 
     // ---- Gamma ramp ---------------------------------------------------------
@@ -117,6 +222,7 @@ public sealed class ColorViewModel : ObservableObject
             if (!Set(ref _gamma, value)) return;
             OnGammaChanged();
             if (_loading || _selected is null) return;
+            MarkCustom();
 
             var device = _selected.DeviceName;
             var saved = SavedForSelected!;
@@ -166,6 +272,7 @@ public sealed class ColorViewModel : ObservableObject
     private void OnGpuValueChanged(GpuPropertyViewModel p)
     {
         SavedForSelected!.Gpu[p.Property] = p.Value;
+        MarkCustom();
         _services.SaveSettings();
     }
 
@@ -234,7 +341,7 @@ public sealed class ColorViewModel : ObservableObject
 
         foreach (var (code, label, value) in values)
             if (value is { Maximum: > 0 })
-                DdcControls.Add(new DdcControlViewModel(label, value, v => SetVcp(monitor, code, v)));
+                DdcControls.Add(new DdcControlViewModel(code, label, value, v => SetVcp(monitor, code, v)));
         SelectedInput = input?.Current & 0xFF;
         OnPropertyChanged(nameof(HasDdc));
         OnPropertyChanged(nameof(ShowNoDdc));
@@ -312,14 +419,16 @@ public sealed class DdcControlViewModel : ObservableObject
     private readonly Debouncer _debounce = new(TimeSpan.FromMilliseconds(150));
     private double _value;
 
-    public DdcControlViewModel(string label, VcpValue value, Action<uint> set)
+    public DdcControlViewModel(byte code, string label, VcpValue value, Action<uint> set)
     {
+        Code = code;
         Label = label;
         Maximum = value.Maximum;
         _value = value.Current;
         _set = set;
     }
 
+    public byte Code { get; }
     public string Label { get; }
     public double Maximum { get; }
 
@@ -329,6 +438,36 @@ public sealed class DdcControlViewModel : ObservableObject
         set
         {
             if (Set(ref _value, value)) _debounce.Run(() => _set((uint)Math.Round(value)));
+        }
+    }
+}
+
+public sealed class PresetItemViewModel(ColorPreset preset, bool isActive)
+{
+    public ColorPreset Preset { get; } = preset;
+    public string Name => Preset.Name;
+    public bool IsBuiltIn => Preset.IsBuiltIn;
+    public bool IsActive { get; } = isActive;
+
+    public string Swatch
+    {
+        get
+        {
+            var (r, g, b) = ColorPresetMath.Swatch(Preset);
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+    }
+
+    public string Details
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (Preset.Gamma.Temperature != 6500) parts.Add($"{Preset.Gamma.Temperature} K");
+            if (Preset.Saturation is double s && Math.Abs(s) > 0.005) parts.Add($"vibrance {(s > 0 ? "+" : "")}{s * 100:0}%");
+            if (Math.Abs(Preset.Gamma.Gamma - 1) > 0.005) parts.Add($"gamma {Preset.Gamma.Gamma:0.00}");
+            if (Preset.MonitorBrightness is double mb) parts.Add($"monitor {mb * 100:0}%");
+            return parts.Count == 0 ? "Neutral" : string.Join(" · ", parts);
         }
     }
 }

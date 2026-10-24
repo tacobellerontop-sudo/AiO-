@@ -46,7 +46,11 @@ public partial class App : Application
 
         _viewModel = new MainViewModel();
         _viewModel.Keyboard.OpenAiORequested = ShowMainWindow;
-        _tray = new TrayIcon(services.Asus is not null);
+        _tray = new TrayIcon(services.Asus is not null, () => ColorPresets.All.Select(p => p.Name));
+        _tray.ColorPresetRequested += name =>
+        {
+            if (ColorPresets.Find(name) is { } preset) _ = ColorPresets.ApplyToAllAsync(preset);
+        };
         _tray.OpenRequested += ShowMainWindow;
         _tray.ExitRequested += ExitApp;
         _tray.PerformanceModeRequested += mode =>
