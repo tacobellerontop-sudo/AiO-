@@ -100,7 +100,7 @@ public partial class App : Application
         _window.Show();
         if (_window.WindowState == WindowState.Minimized) _window.WindowState = WindowState.Normal;
         _window.Activate();
-        if (_viewModel?.SelectedPage?.Title == "ASUS") _viewModel.Asus?.StartSensors();
+        if (_viewModel?.SelectedPage?.Title == MainViewModel.AsusPageTitle) _viewModel.Asus?.StartSensors();
     }
 
     private bool _exiting;

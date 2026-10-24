@@ -20,16 +20,21 @@ public sealed class AsusAcpi : IDisposable
     private AsusAcpi(SafeFileHandle handle) => _handle = handle;
 
     /// <summary>Opens the driver, or returns null when this isn't an ASUS machine (or the driver is missing).</summary>
-    public static AsusAcpi? TryOpen()
+    public static AsusAcpi? TryOpen() => TryOpen(out _);
+
+    /// <summary>As <see cref="TryOpen()"/>, also giving the Win32 error when the driver can't be opened.</summary>
+    public static AsusAcpi? TryOpen(out int win32Error)
     {
         var handle = Kernel32.CreateFile(DevicePath, Kernel32.GENERIC_READ | Kernel32.GENERIC_WRITE,
             Kernel32.FILE_SHARE_READ | Kernel32.FILE_SHARE_WRITE, IntPtr.Zero, Kernel32.OPEN_EXISTING,
             Kernel32.FILE_ATTRIBUTE_NORMAL, IntPtr.Zero);
         if (handle.IsInvalid)
         {
+            win32Error = Marshal.GetLastWin32Error();
             handle.Dispose();
             return null;
         }
+        win32Error = 0;
         return new AsusAcpi(handle);
     }
 

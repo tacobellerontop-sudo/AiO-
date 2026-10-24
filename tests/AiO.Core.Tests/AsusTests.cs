@@ -106,3 +106,34 @@ public class AsusTests
         Assert.Equal(new byte[] { 0x5A, 0xBA, 0xC5, 0xC4, 3 }, AsusAura.BuildBrightnessMessage(9));
     }
 }
+
+public class AsusDetectionTests
+{
+    [Fact]
+    public void Non_asus_pc_says_so()
+    {
+        var d = AsusDetection.Describe("Dell Inc.", "XPS 15", false, 2);
+        Assert.False(d.IsAsus);
+        Assert.Contains("Dell Inc.", d.Message);
+    }
+
+    [Fact]
+    public void Asus_without_driver_points_to_system_control_interface()
+    {
+        var d = AsusDetection.Describe("ASUSTeK COMPUTER INC.", "ROG Strix G16", false, 2);
+        Assert.True(d.IsAsus);
+        Assert.Contains("ASUS System Control Interface", d.Message);
+    }
+
+    [Fact]
+    public void Access_denied_suggests_admin()
+    {
+        Assert.Contains("administrator", AsusDetection.Describe("ASUSTeK COMPUTER INC.", "", false, 5).Message);
+    }
+
+    [Fact]
+    public void Opened_driver_reports_connected()
+    {
+        Assert.True(AsusDetection.Describe("ASUSTeK COMPUTER INC.", "", true, 0).DriverOpened);
+    }
+}

@@ -12,11 +12,14 @@ public sealed class AppServices : IDisposable
 
     public SettingsStore Settings { get; } = new();
 
-    private readonly Lazy<AsusLaptop?> _asus = new(AsusLaptop.TryOpen);
+    private readonly Lazy<(AsusLaptop? Laptop, AsusDetection Detection)> _asus = new(AsusLaptop.Detect);
     private readonly Lazy<IReadOnlyList<IGpuColorControl>> _gpu = new(GpuColorControls.LoadAll);
 
     /// <summary>Null on machines without the ASUS ATKACPI driver.</summary>
-    public AsusLaptop? Asus => _asus.Value;
+    public AsusLaptop? Asus => _asus.Value.Laptop;
+
+    /// <summary>What was found when looking for the ASUS driver (shown when <see cref="Asus"/> is null).</summary>
+    public AsusDetection AsusDetection => _asus.Value.Detection;
 
     public IReadOnlyList<IGpuColorControl> GpuColor => _gpu.Value;
 
@@ -48,7 +51,7 @@ public sealed class AppServices : IDisposable
 
     public void Dispose()
     {
-        if (_asus.IsValueCreated) _asus.Value?.Dispose();
+        if (_asus.IsValueCreated) _asus.Value.Laptop?.Dispose();
         if (_gpu.IsValueCreated)
             foreach (var g in _gpu.Value) g.Dispose();
     }

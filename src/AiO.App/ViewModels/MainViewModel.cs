@@ -23,6 +23,8 @@ public sealed class MainViewModel : ObservableObject
 
     public AsusViewModel? Asus { get; }
 
+    public const string AsusPageTitle = "ASUS · G-Helper";
+
     public MainViewModel()
     {
         try
@@ -37,13 +39,15 @@ public sealed class MainViewModel : ObservableObject
         // Segoe Fluent Icons / MDL2 glyphs.
         var pages = new List<NavItem>
         {
-            new("Displays", "", () => new Views.DisplaysPage { DataContext = new DisplaysViewModel() }),
-            new("Colour", "", () => new Views.ColorPage { DataContext = new ColorViewModel() }),
-            new("Razer & RGB", "", () => new Views.RazerPage { DataContext = new RazerViewModel() }),
+            new("Displays", "\uE7F4", () => new Views.DisplaysPage { DataContext = new DisplaysViewModel() }),
+            new("Colour", "\uE790", () => new Views.ColorPage { DataContext = new ColorViewModel() }),
+            new("Razer & RGB", "\uE962", () => new Views.RazerPage { DataContext = new RazerViewModel() }),
         };
-        if (Asus is not null)
-            pages.Add(new("ASUS", "", () => new Views.AsusPage { DataContext = Asus }));
-        pages.Add(new("Settings", "", () => new Views.SettingsPage { DataContext = new SettingsViewModel() }));
+        // Always listed so it's discoverable; explains itself when the laptop isn't supported.
+        pages.Add(Asus is not null
+            ? new(AsusPageTitle, "\uE7F8", () => new Views.AsusPage { DataContext = Asus })
+            : new(AsusPageTitle, "\uE7F8", () => new Views.AsusUnavailablePage { DataContext = new AsusUnavailableViewModel() }));
+        pages.Add(new("Settings", "\uE713", () => new Views.SettingsPage { DataContext = new SettingsViewModel() }));
         Pages = pages;
         _selected = Pages[0];
 
@@ -59,7 +63,7 @@ public sealed class MainViewModel : ObservableObject
         set
         {
             if (!Set(ref _selected, value)) return;
-            if (value?.Title == "ASUS") Asus?.StartSensors();
+            if (value?.Title == AsusPageTitle) Asus?.StartSensors();
             else Asus?.StopSensors();
         }
     }

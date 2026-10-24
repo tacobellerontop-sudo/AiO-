@@ -21,6 +21,14 @@ public sealed class AsusLaptop : IDisposable
 
     public static AsusLaptop? TryOpen() => AsusAcpi.TryOpen() is { } acpi ? new AsusLaptop(acpi) : null;
 
+    /// <summary>Opens the laptop controls, or explains why they're unavailable.</summary>
+    public static (AsusLaptop? Laptop, AsusDetection Detection) Detect()
+    {
+        var acpi = AsusAcpi.TryOpen(out int error);
+        var (manufacturer, model) = SystemInfo.ReadBios();
+        return (acpi is null ? null : new AsusLaptop(acpi), AsusDetection.Describe(manufacturer, model, acpi is not null, error));
+    }
+
     private uint GpuEcoId => _acpi.IsSupported(AsusDeviceIds.GpuEcoRog) ? AsusDeviceIds.GpuEcoRog : AsusDeviceIds.GpuEcoVivo;
     private uint GpuMuxId => _acpi.IsSupported(AsusDeviceIds.GpuMuxRog) ? AsusDeviceIds.GpuMuxRog : AsusDeviceIds.GpuMuxVivo;
 
