@@ -1,0 +1,55 @@
+<UserControl x:Class="AiO.App.Views.DisplaysPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshCommand}" VerticalAlignment="Top" />
+            <StackPanel>
+                <TextBlock Text="Displays" Style="{StaticResource PageTitle}" />
+                <TextBlock Style="{StaticResource PageSubtitle}"
+                           Text="Resolution, refresh rate, orientation, scaling and HDR for each connected display. If the screen goes blank after a change, wait 15 seconds and it reverts." />
+            </StackPanel>
+        </DockPanel>
+
+        <ItemsControl ItemsSource="{Binding Displays}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource CardTitle}" />
+                            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" Margin="0,0,0,16" />
+
+                            <WrapPanel>
+                                <StackPanel Margin="0,0,16,12">
+                                    <TextBlock Text="Resolution" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding Resolutions}" SelectedItem="{Binding SelectedResolution}" Width="170" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,16,12">
+                                    <TextBlock Text="Refresh rate" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding RefreshRates}" SelectedItem="{Binding SelectedRefreshRate}" Width="120" ItemStringFormat="{}{0} Hz" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,16,12">
+                                    <TextBlock Text="Orientation" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding Orientations}" SelectedItem="{Binding SelectedOrientation}" Width="160" />
+                                </StackPanel>
+                                <Button Content="Apply" Style="{StaticResource AccentButton}" Command="{Binding ApplyCommand}"
+                                        VerticalAlignment="Bottom" Margin="0,0,0,12" />
+                            </WrapPanel>
+
+                            <WrapPanel Visibility="{Binding HasScale, Converter={StaticResource Visible}}">
+                                <StackPanel Margin="0,0,16,12">
+                                    <TextBlock Text="Scale" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding Scales}" SelectedItem="{Binding SelectedScale}" Width="120" ItemStringFormat="{}{0}%" />
+                                </StackPanel>
+                                <Button Content="Apply scale" Command="{Binding ApplyScaleCommand}" VerticalAlignment="Bottom" Margin="0,0,0,12" />
+                            </WrapPanel>
+
+                            <CheckBox Content="HDR" IsChecked="{Binding HdrEnabled, Mode=TwoWay}"
+                                      Visibility="{Binding HdrSupported, Converter={StaticResource Visible}}" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

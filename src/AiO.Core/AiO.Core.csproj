@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Plain net8.0 so the protocol logic can be unit-tested on any OS.
+       Everything that touches hardware is Windows-only at runtime. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>AiO.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AiO.Core.Tests" />
+  </ItemGroup>
+</Project>

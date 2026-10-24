@@ -1,0 +1,154 @@
+<UserControl x:Class="AiO.App.Views.AsusPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:AiO.App.Controls">
+    <StackPanel>
+        <TextBlock Text="ASUS" Style="{StaticResource PageTitle}" />
+        <TextBlock Style="{StaticResource PageSubtitle}"
+                   Text="G-Helper-style control of ROG, TUF and Vivobook laptops through the ASUS ACPI driver, without Armoury Crate. Leave AiO running in the tray: the firmware forgets fan curves and charge limits on reboot, and AiO re-applies them." />
+
+        <!-- Live sensors -->
+        <Border Style="{StaticResource Card}" Padding="20,14">
+            <TextBlock Text="{Binding SensorText}" FontFamily="Cascadia Mono, Consolas" />
+        </Border>
+
+        <!-- Performance mode -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Performance mode" Style="{StaticResource CardTitle}" />
+                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
+                           Text="Silent keeps fans quiet, Balanced is the default, Turbo raises power limits and fan speeds." />
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Perf" Content="Silent"
+                                 IsChecked="{Binding PerformanceMode, Converter={StaticResource EnumEquals}, ConverterParameter=Silent}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Perf" Content="Balanced"
+                                 IsChecked="{Binding PerformanceMode, Converter={StaticResource EnumEquals}, ConverterParameter=Balanced}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Perf" Content="Turbo"
+                                 IsChecked="{Binding PerformanceMode, Converter={StaticResource EnumEquals}, ConverterParameter=Turbo}" />
+                </StackPanel>
+                <CheckBox Content="Also switch the Windows power mode" IsChecked="{Binding SyncWindowsPowerMode}" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- GPU mode -->
+        <Border Style="{StaticResource Card}" Visibility="{Binding SupportsGpuModes, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <TextBlock Text="GPU mode" Style="{StaticResource CardTitle}" />
+                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
+                           Text="Eco turns the dedicated GPU off to save battery. Standard switches automatically (Optimus). Ultimate connects the screen straight to the dedicated GPU (MUX) and needs a restart." />
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Gpu" Content="Eco"
+                                 IsChecked="{Binding GpuMode, Converter={StaticResource EnumEquals}, ConverterParameter=Eco}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Gpu" Content="Standard"
+                                 IsChecked="{Binding GpuMode, Converter={StaticResource EnumEquals}, ConverterParameter=Standard}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Gpu" Content="Ultimate"
+                                 IsEnabled="{Binding SupportsUltimate}"
+                                 IsChecked="{Binding GpuMode, Converter={StaticResource EnumEquals}, ConverterParameter=Ultimate}" />
+                </StackPanel>
+                <TextBlock Text="{Binding GpuMessage}" Style="{StaticResource Muted}" Margin="0,10,0,0"
+                           Visibility="{Binding GpuMessage, Converter={StaticResource Visible}}" />
+                <Button Content="Restart now" Style="{StaticResource AccentButton}" Command="{Binding RestartCommand}"
+                        HorizontalAlignment="Left" Margin="0,10,0,0"
+                        Visibility="{Binding RestartPending, Converter={StaticResource Visible}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Fans and power -->
+        <Border Style="{StaticResource Card}" Visibility="{Binding SupportsFanCurves, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <TextBlock Text="Fans and power" Style="{StaticResource CardTitle}" />
+                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
+                           Text="Each performance mode has its own fan curves and power limits. Drag the points to shape a curve." />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <TextBlock Text="Editing" Style="{StaticResource Label}" />
+                    <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding EditingMode}" Width="140" />
+                </StackPanel>
+
+                <CheckBox Content="Use custom fan curves in this mode" IsChecked="{Binding CustomFanCurves}" />
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="CPU fan" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <c:FanCurveEditor Curve="{Binding CpuCurve}" Height="220" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="GPU fan" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <c:FanCurveEditor Curve="{Binding GpuCurve}" Height="220" />
+                    </StackPanel>
+                </Grid>
+                <StackPanel Visibility="{Binding SupportsMidFan, Converter={StaticResource Visible}}" Margin="0,10,0,0">
+                    <TextBlock Text="Mid fan" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <c:FanCurveEditor Curve="{Binding MidCurve}" Height="220" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Content="Apply fan curves" Style="{StaticResource AccentButton}" Command="{Binding ApplyFansCommand}" Margin="0,0,8,0" />
+                    <Button Content="Load built-in curves" Command="{Binding LoadFirmwareCurvesCommand}" />
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding SupportsPowerLimits, Converter={StaticResource Visible}}" Margin="0,22,0,0">
+                    <CheckBox Content="Use custom power limits in this mode" IsChecked="{Binding CustomPowerLimits}" />
+                    <c:SliderRow Label="CPU sustained (SPL)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SustainedWatts}" />
+                    <c:SliderRow Label="CPU slow boost (sPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SlowWatts}" />
+                    <c:SliderRow Label="CPU fast boost (fPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding FastWatts}" />
+                    <StackPanel Visibility="{Binding SupportsGpuPowerTuning, Converter={StaticResource Visible}}">
+                        <c:SliderRow Label="GPU dynamic boost" Minimum="5" Maximum="25" Format="{}{0:0} W" Value="{Binding GpuDynamicBoost}" />
+                        <c:SliderRow Label="GPU temp target" Minimum="75" Maximum="87" Format="{}{0:0} °C" Value="{Binding GpuTempTarget}" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Warning}" Margin="0,6,0,10"
+                               Text="Limits above what your laptop's cooling can handle cause throttling, not extra speed. The firmware clamps out-of-range values." />
+                    <Button Content="Apply power limits" Style="{StaticResource AccentButton}" Command="{Binding ApplyPowerCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Battery and screen -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Battery and screen" Style="{StaticResource CardTitle}" Margin="0,0,0,12" />
+                <StackPanel Visibility="{Binding SupportsBatteryLimit, Converter={StaticResource Visible}}">
+                    <c:SliderRow Label="Charge limit" Minimum="40" Maximum="100" Step="5" Format="{}{0:0}%" Value="{Binding BatteryLimit}" />
+                    <StackPanel Orientation="Horizontal" Margin="150,4,0,12">
+                        <Button Content="60%" Command="{Binding BatteryPresetCommand}" CommandParameter="60" Margin="0,0,6,0" />
+                        <Button Content="80%" Command="{Binding BatteryPresetCommand}" CommandParameter="80" Margin="0,0,6,0" />
+                        <Button Content="100%" Command="{Binding BatteryPresetCommand}" CommandParameter="100" Margin="0,0,16,0" />
+                        <Button Content="Apply" Style="{StaticResource AccentButton}" Command="{Binding ApplyBatteryCommand}" />
+                    </StackPanel>
+                </StackPanel>
+                <CheckBox Content="Panel overdrive (faster pixel response)" IsChecked="{Binding Overdrive}"
+                          Visibility="{Binding SupportsOverdrive, Converter={StaticResource Visible}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Keyboard -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Keyboard backlight" Style="{StaticResource CardTitle}" Margin="0,0,0,12" />
+                <c:SliderRow Label="Brightness" Minimum="0" Maximum="3" Format="{}{0:0}" Value="{Binding KeyboardBrightness}" />
+                <WrapPanel Visibility="{Binding AuraAvailable, Converter={StaticResource Visible}}" Margin="0,8,0,0">
+                    <StackPanel Margin="0,0,16,10">
+                        <TextBlock Text="Effect" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding AuraModes}" SelectedItem="{Binding AuraMode}" Width="140" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,16,10">
+                        <TextBlock Text="Speed" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding AuraSpeeds}" SelectedItem="{Binding AuraSpeed}" Width="110" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,16,10">
+                        <TextBlock Text="Colour" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <c:ColorPicker Color="{Binding AuraColor}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,16,10">
+                        <TextBlock Text="Second colour" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <c:ColorPicker Color="{Binding AuraColor2}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </WrapPanel>
+                <Button Content="Apply keyboard" Style="{StaticResource AccentButton}" Command="{Binding ApplyKeyboardCommand}"
+                        HorizontalAlignment="Left" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

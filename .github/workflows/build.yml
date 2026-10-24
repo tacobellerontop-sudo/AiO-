@@ -1,0 +1,22 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Test
+        run: dotnet test tests/AiO.Core.Tests -c Release
+      - name: Publish
+        run: dotnet publish src/AiO.App -c Release -o publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AiO-win-x64
+          path: publish

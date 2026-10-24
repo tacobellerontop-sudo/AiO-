@@ -1,0 +1,51 @@
+<Window x:Class="AiO.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AiO" Width="1100" Height="760" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Navigation -->
+        <DockPanel Grid.RowSpan="2" Background="{StaticResource SurfaceBrush}">
+            <StackPanel DockPanel.Dock="Top" Margin="20,22,20,18">
+                <TextBlock Text="AiO" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="All-in-one hardware settings" Style="{StaticResource Muted}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage}"
+                     ItemContainerStyle="{StaticResource NavItem}"
+                     Background="Transparent" BorderThickness="0" Margin="10,0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="16" Width="28" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <!-- Page -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="32,26,32,10">
+            <ContentControl Content="{Binding SelectedPage.Page}" MaxWidth="900" HorizontalAlignment="Stretch" />
+        </ScrollViewer>
+
+        <!-- Status line -->
+        <Border Grid.Column="1" Grid.Row="1" Padding="32,8" Background="{StaticResource SurfaceBrush}"
+                Visibility="{Binding Status, Converter={StaticResource Visible}}">
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,114 @@
+<UserControl x:Class="AiO.App.Views.RazerPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:AiO.App.Controls">
+    <StackPanel>
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Scan again" Command="{Binding ScanCommand}" VerticalAlignment="Top" />
+            <StackPanel>
+                <TextBlock Text="Razer &amp; RGB" Style="{StaticResource PageTitle}" />
+                <TextBlock Style="{StaticResource PageSubtitle}"
+                           Text="AiO talks to Razer devices directly (the protocol documented by OpenRazer), so Synapse isn't needed. Close Synapse first; both fighting over the device gives odd results. For lighting on any brand, connect to OpenRGB below." />
+            </StackPanel>
+        </DockPanel>
+
+        <TextBlock Text="Looking for Razer devices…" Style="{StaticResource Muted}" Margin="0,0,0,16"
+                   Visibility="{Binding Scanning, Converter={StaticResource Visible}}" />
+        <Border Style="{StaticResource Card}" Visibility="{Binding NoDevices, Converter={StaticResource Visible}}">
+            <TextBlock Style="{StaticResource Muted}"
+                       Text="No Razer devices answered. Wireless devices need their dongle plugged in; if Synapse is running, quit it and scan again." />
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding Devices}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource CardTitle}" />
+                            <TextBlock Text="{Binding Details}" Style="{StaticResource Muted}" Margin="0,0,0,14" />
+
+                            <!-- Sensor -->
+                            <StackPanel Visibility="{Binding IsMouse, Converter={StaticResource Visible}}" Margin="0,0,0,10">
+                                <c:SliderRow Label="DPI" Minimum="100" Maximum="30000" Step="50" Value="{Binding Dpi}" />
+                                <StackPanel Orientation="Horizontal" Margin="150,4,0,8">
+                                    <Button Content="400" Command="{Binding SetDpiPresetCommand}" CommandParameter="400" Margin="0,0,6,0" />
+                                    <Button Content="800" Command="{Binding SetDpiPresetCommand}" CommandParameter="800" Margin="0,0,6,0" />
+                                    <Button Content="1600" Command="{Binding SetDpiPresetCommand}" CommandParameter="1600" Margin="0,0,6,0" />
+                                    <Button Content="3200" Command="{Binding SetDpiPresetCommand}" CommandParameter="3200" Margin="0,0,16,0" />
+                                    <Button Content="Apply DPI" Style="{StaticResource AccentButton}" Command="{Binding ApplyDpiCommand}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Polling rate" Style="{StaticResource Label}" Width="150" />
+                                    <ComboBox ItemsSource="{Binding PollingRates}" SelectedItem="{Binding PollingRate}" Width="120" ItemStringFormat="{}{0} Hz" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Lighting -->
+                            <TextBlock Text="Lighting" FontWeight="SemiBold" Margin="0,8,0,8" />
+                            <WrapPanel>
+                                <StackPanel Margin="0,0,16,10">
+                                    <TextBlock Text="Zone" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding Leds}" SelectedItem="{Binding SelectedLed}" Width="140" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,16,10">
+                                    <TextBlock Text="Effect" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <ComboBox ItemsSource="{Binding Effects}" SelectedItem="{Binding SelectedEffect}" Width="140" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,16,10" Visibility="{Binding UsesColor, Converter={StaticResource Visible}}">
+                                    <TextBlock Text="Colour" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <c:ColorPicker Color="{Binding Color}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,16,10" Visibility="{Binding UsesSecondColor, Converter={StaticResource Visible}}">
+                                    <TextBlock Text="Second colour" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                                    <c:ColorPicker Color="{Binding Color2}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                                <Button Content="Apply lighting" Style="{StaticResource AccentButton}" Command="{Binding ApplyLightingCommand}"
+                                        VerticalAlignment="Bottom" Margin="0,0,0,10" />
+                            </WrapPanel>
+                            <c:SliderRow Label="Brightness" Minimum="0" Maximum="255" Value="{Binding Brightness}" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- OpenRGB -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="OpenRGB" Style="{StaticResource CardTitle}" />
+                <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,12"
+                           Text="OpenRGB is a free, open-source RGB controller for Razer, Corsair, Logitech, ASUS Aura, motherboards, RAM and more. Run it with Settings → SDK Server enabled, then connect." />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Host" Style="{StaticResource Label}" />
+                    <TextBox Text="{Binding OpenRgb.Host}" Width="140" />
+                    <TextBlock Text="Port" Style="{StaticResource Label}" Margin="16,0,12,0" />
+                    <TextBox Text="{Binding OpenRgb.Port}" Width="70" />
+                    <Button Content="Connect" Style="{StaticResource AccentButton}" Command="{Binding ConnectOpenRgbCommand}" Margin="16,0,0,0" />
+                </StackPanel>
+                <CheckBox Content="Connect automatically" IsChecked="{Binding OpenRgb.AutoConnect}" />
+                <TextBlock Text="{Binding OpenRgbStatus}" Style="{StaticResource Muted}" Margin="0,8,0,8" />
+
+                <ItemsControl ItemsSource="{Binding Controllers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <c:ColorPicker Color="{Binding Color}" Margin="0,0,8,0" />
+                                        <Button Content="Set colour" Command="{Binding ApplyColorCommand}" Margin="0,0,16,0" />
+                                        <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" Width="140" />
+                                        <Button Content="Set mode" Command="{Binding ApplyModeCommand}" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Details}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>
