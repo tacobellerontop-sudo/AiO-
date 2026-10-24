@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write  # publish the "latest" release
+
 jobs:
   build:
     runs-on: windows-latest
@@ -32,3 +35,13 @@ jobs:
         with:
           name: AiO-win-x64
           path: publish
+      - name: Publish the "latest" release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Compress-Archive -Path publish/* -DestinationPath AiO-win-x64.zip
+          gh release delete latest --yes --cleanup-tag 2>$null
+          $global:LASTEXITCODE = 0
+          gh release create latest AiO-win-x64.zip --target $env:GITHUB_SHA --title "AiO (latest build)" --notes "Built from $env:GITHUB_SHA. Unzip and run AiO.exe. Needs the .NET 8 Desktop Runtime."
