@@ -74,3 +74,7 @@ AiO reimplements hardware protocols documented by these open-source projects. It
 - [OpenRGB](https://openrgb.org): the SDK network protocol
 
 See [NOTICE.md](NOTICE.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
