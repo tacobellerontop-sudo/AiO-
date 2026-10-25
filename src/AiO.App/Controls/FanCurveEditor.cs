@@ -15,7 +15,8 @@ public sealed class FanCurveEditor : FrameworkElement
 
     public static readonly DependencyProperty CurveProperty =
         DependencyProperty.Register(nameof(Curve), typeof(FanCurve), typeof(FanCurveEditor),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+            // One-way: the editor changes the FanCurve object in place, so there's nothing to write back.
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public FanCurve? Curve { get => (FanCurve?)GetValue(CurveProperty); set => SetValue(CurveProperty, value); }
 
