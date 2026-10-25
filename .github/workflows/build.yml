@@ -18,7 +18,7 @@ jobs:
       - name: Test
         run: dotnet test tests/AiO.Core.Tests -c Release
       - name: Publish
-        run: dotnet publish src/AiO.App -c Release -o publish
+        run: dotnet publish src/AiO.App -c Release -o publish -p:SourceRevisionId=${{ github.sha }}
       - name: Include the mouse acceleration driver (RawAccel, MIT)
         shell: pwsh
         env:

@@ -27,10 +27,13 @@ public sealed class MainViewModel : ObservableObject
     public AsusViewModel? Asus { get; private set; }
 
     public const string AsusPageTitle = "ASUS · G-Helper";
+    public const string SettingsPageTitle = "Settings";
     private const string DisplayGroup = "DISPLAY", InputGroup = "INPUT", SystemGroup = "SYSTEM";
 
     /// <summary>Created up front: the keyboard hook runs whether or not its page is open.</summary>
     public KeyboardViewModel Keyboard { get; }
+
+    public UpdateViewModel Updates => UpdateViewModel.Instance;
 
     public string Version => "Version " + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "");
 
@@ -49,7 +52,7 @@ public sealed class MainViewModel : ObservableObject
             new("Razer", "\uEA80", InputGroup, () => new Views.RazerPage { DataContext = new RazerViewModel() }),
             // Always listed so it's discoverable; explains itself when the laptop isn't supported.
             CreateAsusPage(),
-            new("Settings", "\uE713", SystemGroup, () => new Views.SettingsPage { DataContext = new SettingsViewModel() }),
+            new(SettingsPageTitle, "\uE713", SystemGroup, () => new Views.SettingsPage { DataContext = new SettingsViewModel() }),
         };
         Pages = new ObservableCollection<NavItem>(pages);
         _selected = Pages[0];

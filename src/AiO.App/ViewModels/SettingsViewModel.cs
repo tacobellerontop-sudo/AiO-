@@ -48,6 +48,9 @@ public sealed class SettingsViewModel : ObservableObject
     public bool StartMinimized { get => General.StartMinimized; set { General.StartMinimized = value; Save(); } }
     public bool CloseToTray { get => General.CloseToTray; set { General.CloseToTray = value; Save(); } }
     public bool ApplyOnStartup { get => General.ApplyOnStartup; set { General.ApplyOnStartup = value; Save(); } }
+    public bool CheckForUpdates { get => General.CheckForUpdates; set { General.CheckForUpdates = value; Save(); } }
+
+    public UpdateViewModel Updates => UpdateViewModel.Instance;
 
     public string Version => typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "";
 

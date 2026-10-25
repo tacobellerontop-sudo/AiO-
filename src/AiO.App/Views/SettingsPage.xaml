@@ -17,6 +17,23 @@
 
         <Border Style="{StaticResource Card}">
             <StackPanel>
+                <c:CardHeader Glyph="&#xE895;" Title="Updates" Subtitle="{Binding Updates.CurrentBuildText}" />
+                <TextBlock Text="{Binding Updates.Status}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                <ProgressBar Height="4" Margin="0,0,0,10" Maximum="100" Value="{Binding Updates.Progress}"
+                             Visibility="{Binding Updates.IsBusy, Converter={StaticResource Visible}}" />
+                <WrapPanel>
+                    <Button Content="Check for updates" Command="{Binding Updates.CheckCommand}" Margin="0,0,8,8" />
+                    <Button Content="{Binding Updates.InstallText}" Command="{Binding Updates.InstallCommand}" Margin="0,0,8,8"
+                            Style="{StaticResource AccentButton}"
+                            Visibility="{Binding Updates.IsAvailable, Converter={StaticResource Visible}}" />
+                    <Button Content="Release page" Command="{Binding Updates.OpenReleasesCommand}" Margin="0,0,8,8" />
+                </WrapPanel>
+                <CheckBox Content="Check for updates when AiO starts" IsChecked="{Binding CheckForUpdates}" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
                 <c:CardHeader Glyph="&#xE72E;" Title="Permissions" Subtitle="{Binding AdminText}" />
                 <StackPanel Orientation="Horizontal">
                     <Button Content="Restart as administrator" Command="{Binding RestartAsAdminCommand}" Margin="0,0,8,0" />

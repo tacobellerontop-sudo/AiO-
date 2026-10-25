@@ -35,6 +35,8 @@ public sealed class GeneralSettings
     public bool CloseToTray { get; set; } = true;
     /// <summary>Re-apply colour, ASUS and Razer settings when AiO starts.</summary>
     public bool ApplyOnStartup { get; set; } = true;
+    /// <summary>Look for a newer AiO build in the background when AiO starts.</summary>
+    public bool CheckForUpdates { get; set; } = true;
 }
 
 public sealed class DisplayColorSettings

@@ -71,6 +71,10 @@
             <DockPanel Grid.Row="1">
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding Version}" Foreground="{StaticResource TextMutedBrush}"
                            FontSize="11" Margin="22,0,0,16" />
+                <Button DockPanel.Dock="Bottom" Content="&#x2B07;  Update available" Style="{StaticResource AccentButton}"
+                        HorizontalAlignment="Left" Margin="20,0,0,8" FontSize="12" Padding="10,4"
+                        Command="{Binding Updates.InstallCommand}" ToolTip="{Binding Updates.Status}"
+                        Visibility="{Binding Updates.IsNewer, Converter={StaticResource Visible}}" />
                 <ListBox ItemsSource="{Binding Source={StaticResource GroupedPages}}" SelectedItem="{Binding SelectedPage}"
                          ItemContainerStyle="{StaticResource NavItem}" Background="Transparent" BorderThickness="0"
                          Margin="10,6,10,0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">

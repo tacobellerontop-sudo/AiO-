@@ -58,6 +58,32 @@ public partial class App : Application
             if (_viewModel.Asus is { } asus) asus.PerformanceMode = mode;
         };
 
+        var updates = UpdateViewModel.Instance;
+        _tray.CheckForUpdatesRequested += () =>
+        {
+            ShowMainWindow();
+            _viewModel.SelectedPage = _viewModel.Pages.First(p => p.Title == MainViewModel.SettingsPageTitle);
+            _ = updates.CheckAsync(userInitiated: true);
+        };
+        updates.UpdateFound += release => _tray.ShowMessage("AiO update available",
+            $"Build {release.ShortCommit} is ready. Open Settings → Updates to install it.");
+        _tray.MessageClicked += () =>
+        {
+            ShowMainWindow();
+            _viewModel.SelectedPage = _viewModel.Pages.First(p => p.Title == MainViewModel.SettingsPageTitle);
+        };
+        if (services.Settings.Current.General.CheckForUpdates)
+        {
+            // Give start-up a moment (network, hardware probes) before asking GitHub.
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                _ = updates.CheckAsync(userInitiated: false);
+            };
+            timer.Start();
+        }
+
         bool minimized = e.Args.Contains(SystemIntegration.MinimizedArgument) && services.Settings.Current.General.StartMinimized;
         if (!minimized) ShowMainWindow();
     }

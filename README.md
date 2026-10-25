@@ -32,6 +32,8 @@ The ASUS page only appears on ASUS laptops that have the ASUS System Control Int
 
 ### Tips
 
+- **Updates:** *Settings → Updates* (or *Check for updates* in the tray menu) fetches the newest build
+  from this repo's `latest` release, swaps it in and restarts AiO. Your settings are kept.
 - **Mouse acceleration:** on the Mouse page, click *Install driver* once and restart Windows.
 - **Keyboard remaps** can't reach apps running as administrator unless AiO is elevated too.
 - **Razer:** quit Synapse before using AiO's Razer page. Two programs sending commands to the same device conflict.

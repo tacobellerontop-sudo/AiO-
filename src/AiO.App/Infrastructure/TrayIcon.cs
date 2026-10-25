@@ -16,6 +16,9 @@ public sealed class TrayIcon : IDisposable
     public event Action? ExitRequested;
     public event Action<AsusPerformanceMode>? PerformanceModeRequested;
     public event Action<string>? ColorPresetRequested;
+    public event Action? CheckForUpdatesRequested;
+    /// <summary>Raised when the user clicks a balloon from <see cref="ShowMessage"/>.</summary>
+    public event Action? MessageClicked;
 
     public TrayIcon(bool showAsusModes, Func<IEnumerable<string>> colorPresetNames)
     {
@@ -41,6 +44,7 @@ public sealed class TrayIcon : IDisposable
                 menu.Items.Add(mode.ToString(), null, (_, _) => PerformanceModeRequested?.Invoke(mode));
         }
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Check for updates", null, (_, _) => CheckForUpdatesRequested?.Invoke());
         menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke());
 
         _icon = new NotifyIcon
@@ -50,6 +54,7 @@ public sealed class TrayIcon : IDisposable
             ContextMenuStrip = menu,
             Visible = true,
         };
+        _icon.BalloonTipClicked += (_, _) => MessageClicked?.Invoke();
         _icon.MouseClick += (_, e) =>
         {
             if (e.Button == MouseButtons.Left) OpenRequested?.Invoke();
