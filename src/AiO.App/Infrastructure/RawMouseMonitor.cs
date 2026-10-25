@@ -34,13 +34,18 @@ public sealed class RawMouseMonitor : IDisposable
             WindowStyle = 0,
         });
         _window.AddHook(WndProc);
-        Register(RIDEV_INPUTSINK, _window.Handle);
+        if (!Register(RIDEV_INPUTSINK, _window.Handle))
+        {
+            int error = Marshal.GetLastWin32Error();
+            _window.Dispose();
+            throw new System.ComponentModel.Win32Exception(error, "Windows refused raw mouse input");
+        }
     }
 
-    private static void Register(uint flags, IntPtr target)
+    private static bool Register(uint flags, IntPtr target)
     {
         var device = new RAWINPUTDEVICE { usUsagePage = 0x01, usUsage = 0x02, dwFlags = flags, hwndTarget = target };
-        RegisterRawInputDevices([device], 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>());
+        return RegisterRawInputDevices([device], 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>());
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

@@ -287,16 +287,25 @@ public sealed class MouseViewModel : ObservableObject
     /// <summary>Starts reading raw mouse movement (while the Mouse page is visible).</summary>
     public void StartLive()
     {
-        if (_monitor is not null) return;
+        if (_liveTimer is not null) return;
+        _rawEvents = 0;
+        _liveStarted = Now();
+        _usingCursorFallback = false;
+        GetCursorPos(out _lastCursor);
         try
         {
             _monitor = new RawMouseMonitor();
-            _monitor.Moved += _meter.Add;
+            _monitor.Moved += (dx, dy, t) =>
+            {
+                _rawEvents++;
+                _meter.Add(dx, dy, t);
+            };
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            LiveText = $"Live speed unavailable: {ex.Message}";
-            return;
+            // Measure from the cursor instead (see UpdateLive).
+            _monitor = null;
+            _usingCursorFallback = true;
         }
         _liveTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _liveTimer.Tick += (_, _) => UpdateLive();
@@ -312,15 +321,39 @@ public sealed class MouseViewModel : ObservableObject
         LiveSpeed = double.NaN;
     }
 
+    private int _rawEvents;
+    private double _liveStarted;
+    private bool _usingCursorFallback;
+    private POINT _lastCursor;
+
+    private static double Now() => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT point);
+
     private void UpdateLive()
     {
-        double now = System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        double now = Now();
+
+        // If Windows delivers no raw mouse data (some security tools block it), measure from the cursor
+        // instead. That reading is after Windows' pointer speed and stops at screen edges, so it's approximate.
+        GetCursorPos(out var cursor);
+        int cdx = cursor.X - _lastCursor.X, cdy = cursor.Y - _lastCursor.Y;
+        _lastCursor = cursor;
+        if (!_usingCursorFallback && _rawEvents == 0 && now - _liveStarted > 1500 && (cdx != 0 || cdy != 0))
+            _usingCursorFallback = true;
+        if (_usingCursorFallback && (cdx != 0 || cdy != 0)) _meter.Add(cdx, cdy, now);
+
         double speed = _meter.Speed(now);
         LiveSpeed = speed;
         double sens = Controls.CurveGraph.YAt(_curve, Math.Min(speed, GraphMaxSpeed));
+        string source = _usingCursorFallback ? "cursor (approximate)" : _rawEvents > 0 ? "raw input" : "waiting for movement";
         LiveText = speed < 0.05
-            ? $"Move your mouse to see where you are on the curve.   Peak {_meter.Peak:0.0} counts/ms"
-            : $"Speed {speed:0.0} counts/ms   →   sensitivity {sens:0.00}×   ·   peak {_meter.Peak:0.0}";
+            ? $"Move your mouse to see where you are on the curve.   Peak {_meter.Peak:0.0} counts/ms   ·   {source}"
+            : $"Speed {speed:0.0} counts/ms → sensitivity {sens:0.00}×   ·   peak {_meter.Peak:0.0}   ·   {source}";
     }
 
     // ---- Graph ---------------------------------------------------------------------
