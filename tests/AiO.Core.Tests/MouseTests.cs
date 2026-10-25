@@ -207,3 +207,43 @@ public class MouseSettingsTests
         }
     }
 }
+
+public class MouseSpeedMeterTests
+{
+    [Fact]
+    public void Steady_movement_gives_counts_per_ms()
+    {
+        var meter = new MouseSpeedMeter(windowMs: 20);
+        // 1000 Hz mouse moving 10 counts per report = 10 counts/ms.
+        for (int t = 0; t <= 100; t++) meter.Add(10, 0, t);
+        Assert.InRange(meter.Speed(100), 9.5, 10.6);
+    }
+
+    [Fact]
+    public void Diagonal_uses_distance()
+    {
+        var meter = new MouseSpeedMeter(windowMs: 10);
+        for (int t = 0; t <= 50; t++) meter.Add(3, 4, t);
+        Assert.InRange(meter.Speed(50), 4.5, 5.6);
+    }
+
+    [Fact]
+    public void Speed_drops_to_zero_when_mouse_stops()
+    {
+        var meter = new MouseSpeedMeter(windowMs: 25);
+        for (int t = 0; t < 50; t++) meter.Add(20, 0, t);
+        Assert.Equal(0, meter.Speed(200));
+    }
+
+    [Fact]
+    public void Peak_is_kept_until_reset()
+    {
+        var meter = new MouseSpeedMeter(windowMs: 10);
+        for (int t = 0; t < 30; t++) meter.Add(50, 0, t);
+        meter.Speed(29);
+        Assert.Equal(0, meter.Speed(500));
+        Assert.True(meter.Peak > 40);
+        meter.ResetPeak();
+        Assert.Equal(0, meter.Peak);
+    }
+}

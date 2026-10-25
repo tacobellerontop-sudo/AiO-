@@ -271,6 +271,58 @@ public sealed class MouseViewModel : ObservableObject
         nameof(AngleSnap), .. VisibilityProperties,
     ];
 
+    // ---- Live speed ----------------------------------------------------------------
+
+    private readonly MouseSpeedMeter _meter = new();
+    private RawMouseMonitor? _monitor;
+    private System.Windows.Threading.DispatcherTimer? _liveTimer;
+    private double _liveSpeed = double.NaN;
+    private string _liveText = "Move your mouse to see where you are on the curve.";
+
+    /// <summary>Current input speed in counts/ms, NaN while the page isn't live.</summary>
+    public double LiveSpeed { get => _liveSpeed; private set => Set(ref _liveSpeed, value); }
+    public string LiveText { get => _liveText; private set => Set(ref _liveText, value); }
+    public ICommand ResetPeakCommand => new RelayCommand(_meter.ResetPeak);
+
+    /// <summary>Starts reading raw mouse movement (while the Mouse page is visible).</summary>
+    public void StartLive()
+    {
+        if (_monitor is not null) return;
+        try
+        {
+            _monitor = new RawMouseMonitor();
+            _monitor.Moved += _meter.Add;
+        }
+        catch (Exception ex)
+        {
+            LiveText = $"Live speed unavailable: {ex.Message}";
+            return;
+        }
+        _liveTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _liveTimer.Tick += (_, _) => UpdateLive();
+        _liveTimer.Start();
+    }
+
+    public void StopLive()
+    {
+        _liveTimer?.Stop();
+        _liveTimer = null;
+        _monitor?.Dispose();
+        _monitor = null;
+        LiveSpeed = double.NaN;
+    }
+
+    private void UpdateLive()
+    {
+        double now = System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        double speed = _meter.Speed(now);
+        LiveSpeed = speed;
+        double sens = Controls.CurveGraph.YAt(_curve, Math.Min(speed, GraphMaxSpeed));
+        LiveText = speed < 0.05
+            ? $"Move your mouse to see where you are on the curve.   Peak {_meter.Peak:0.0} counts/ms"
+            : $"Speed {speed:0.0} counts/ms   →   sensitivity {sens:0.00}×   ·   peak {_meter.Peak:0.0}";
+    }
+
     // ---- Graph ---------------------------------------------------------------------
 
     public const double GraphMaxSpeed = 100;

@@ -25,6 +25,28 @@ public sealed class CurveGraph : FrameworkElement
 
     public double MaxX { get => (double)GetValue(MaxXProperty); set => SetValue(MaxXProperty, value); }
 
+    /// <summary>Live input speed to mark on the curve (NaN = hide the marker).</summary>
+    public static readonly DependencyProperty LiveXProperty =
+        DependencyProperty.Register(nameof(LiveX), typeof(double), typeof(CurveGraph),
+            new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public double LiveX { get => (double)GetValue(LiveXProperty); set => SetValue(LiveXProperty, value); }
+
+    /// <summary>Sensitivity on the curve at <paramref name="x"/> (linear interpolation between samples).</summary>
+    public static double YAt(IReadOnlyList<(double X, double Y)> points, double x)
+    {
+        if (points.Count == 0) return 1;
+        if (x <= points[0].X) return points[0].Y;
+        for (int i = 1; i < points.Count; i++)
+        {
+            if (x > points[i].X) continue;
+            var (x0, y0) = points[i - 1];
+            var (x1, y1) = points[i];
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+        }
+        return points[^1].Y;
+    }
+
     public string XLabel { get; set; } = "input speed (counts/ms)";
     public string YLabel { get; set; } = "sensitivity";
 
@@ -99,6 +121,40 @@ public sealed class CurveGraph : FrameworkElement
         dc.DrawGeometry(_fill, null, area);
         dc.DrawGeometry(null, _linePen, line);
         dc.Pop();
+
+        // Live marker: where the mouse is on the curve right now.
+        if (!double.IsNaN(LiveX) && LiveX > 0.05)
+        {
+            double x = Math.Min(LiveX, MaxX);
+            double y = YAt(points, x);
+            var at = Map(x, y);
+            dc.DrawLine(_livePen, new Point(at.X, plot.Top), new Point(at.X, plot.Bottom));
+            dc.DrawEllipse(_liveFill, _liveRing, at, 6, 6);
+            var label = Text($"{LiveX:0.0} → {y:0.00}×");
+            double lx = Math.Clamp(at.X + 10, plot.Left, plot.Right - label.Width);
+            double ly = Math.Max(plot.Top, at.Y - label.Height - 8);
+            dc.DrawRectangle(_labelBack, null, new Rect(lx - 4, ly - 2, label.Width + 8, label.Height + 4));
+            dc.DrawText(label, new Point(lx, ly));
+        }
+    }
+
+    private static readonly Brush _liveFill = Brushes.White;
+    private static readonly Pen _liveRing = CreatePen(Color.FromRgb(0xF5, 0xB5, 0x44), 3);
+    private static readonly Pen _livePen = CreatePen(Color.FromArgb(110, 0xF5, 0xB5, 0x44), 1);
+    private static readonly Brush _labelBack = CreateBrush(Color.FromArgb(220, 0x1D, 0x1F, 0x25));
+
+    private static Pen CreatePen(Color c, double width)
+    {
+        var pen = new Pen(new SolidColorBrush(c), width);
+        pen.Freeze();
+        return pen;
+    }
+
+    private static Brush CreateBrush(Color c)
+    {
+        var b = new SolidColorBrush(c);
+        b.Freeze();
+        return b;
     }
 
     private static double NiceStep(double raw)

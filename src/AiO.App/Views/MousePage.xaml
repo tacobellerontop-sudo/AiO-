@@ -1,7 +1,8 @@
 <UserControl x:Class="AiO.App.Views.MousePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:AiO.App.Controls">
+             xmlns:c="clr-namespace:AiO.App.Controls"
+             IsVisibleChanged="OnIsVisibleChanged">
     <StackPanel>
         <c:PageHeader Glyph="&#xE962;" Title="Mouse"
                       Subtitle="Raw mouse acceleration with a live curve editor (works in raw-input games too), plus Windows' own pointer settings." />
@@ -38,7 +39,12 @@
                     </StackPanel>
                 </c:CardHeader>
 
-                <c:CurveGraph Points="{Binding Curve}" MaxX="100" Height="240" Margin="0,4,0,16" />
+                <c:CurveGraph Points="{Binding Curve}" MaxX="100" LiveX="{Binding LiveSpeed}" Height="260" Margin="0,4,0,6" />
+                <DockPanel Margin="0,0,0,16">
+                    <Button DockPanel.Dock="Right" Content="Reset peak" Command="{Binding ResetPeakCommand}" />
+                    <TextBlock Text="{Binding LiveText}" Style="{StaticResource Muted}" FontFamily="Cascadia Mono, Consolas"
+                               VerticalAlignment="Center" />
+                </DockPanel>
 
                 <TextBlock Style="{StaticResource Warning}" Margin="0,0,0,12" Visibility="{Binding IsLut, Converter={StaticResource Visible}}"
                            Text="This profile uses a look-up table, which AiO can't edit. Pick another style to replace it." />
