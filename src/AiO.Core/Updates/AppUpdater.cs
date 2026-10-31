@@ -156,11 +156,15 @@ public static partial class AppUpdater
                         if ($i -eq 19) { throw }
                     }
                 }
-                "Updated $(Get-Date)" | Out-File $log
+                "Updated $(Get-Date)" | Out-File $log -Append
             } catch {
-                "Update failed $(Get-Date): $_" | Out-File $log
+                "Update failed $(Get-Date): $_" | Out-File $log -Append
             }
-            Start-Process -FilePath (Join-Path $target 'AiO.exe') -ArgumentList {{Quote(restartArguments)}}
+            try {
+                Start-Process -FilePath (Join-Path $target 'AiO.exe') -ArgumentList {{Quote(restartArguments)}}
+            } catch {
+                "Restart failed $(Get-Date): $_" | Out-File $log -Append
+            }
             """;
     }
 
