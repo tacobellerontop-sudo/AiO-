@@ -24,6 +24,20 @@ public sealed class RazerViewModel : ObservableObject
         _ = ScanAsync();
     }
 
+    private static RazerOptions Options => AppServices.Instance.Settings.Current.RazerOptions;
+
+    public bool BatteryAlerts
+    {
+        get => Options.BatteryAlerts;
+        set { Options.BatteryAlerts = value; AppServices.Instance.SaveSettings(); OnPropertyChanged(); }
+    }
+
+    public double AlertPercent
+    {
+        get => Options.AlertPercent;
+        set { Options.AlertPercent = (int)value; AppServices.Instance.SaveSettings(); OnPropertyChanged(); }
+    }
+
     private async Task ScanAsync()
     {
         Scanning = true;
@@ -100,6 +114,42 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
         RemoveStageCommand = new RelayCommand(RemoveStage, () => DpiStages.Count > 1);
         ApplyStagesCommand = new AsyncCommand(ApplyStagesAsync);
         ApplyPowerCommand = new AsyncCommand(ApplyPowerAsync);
+        LightsOffCommand = new RelayCommand(() => Brightness = 0);
+        RefreshBatteryCommand = new AsyncCommand(RefreshBatteryAsync);
+        StageUpCommand = new RelayCommand(() => StepStage(+1), () => DpiStages.Count > 1);
+        StageDownCommand = new RelayCommand(() => StepStage(-1), () => DpiStages.Count > 1);
+    }
+
+    public ICommand LightsOffCommand { get; }
+    public ICommand RefreshBatteryCommand { get; }
+    public ICommand StageUpCommand { get; }
+    public ICommand StageDownCommand { get; }
+
+    /// <summary>Send the saved DPI, polling rate and lighting each time AiO starts.</summary>
+    public bool RestoreOnStartup
+    {
+        get => _saved.RestoreOnStartup;
+        set { _saved.RestoreOnStartup = value; AppServices.Instance.SaveSettings(); OnPropertyChanged(); }
+    }
+
+    /// <summary>Like pressing the DPI button: switches the device to the next or previous stage now.</summary>
+    private void StepStage(int direction)
+    {
+        int count = DpiStages.Count;
+        ActiveStage = (ActiveStage - 1 + direction + count) % count + 1;
+        int dpi = (int)DpiStages[ActiveStage - 1].Dpi;
+        Dpi = dpi;
+        var stages = DpiStages.Select(s => (int)s.Dpi).ToList();
+        int active = ActiveStage;
+        _ = Run(() => _device.SetDpiStages(stages, active), $"Stage {active}: {dpi} DPI.", () => { });
+    }
+
+    private async Task RefreshBatteryAsync()
+    {
+        var (pct, charging) = await Task.Run(() => (_device.GetBatteryPercent(), _device.IsCharging()));
+        _battery = pct is int p ? $" · battery {p}%{(charging == true ? " (charging)" : "")}" : "";
+        OnPropertyChanged(nameof(Details));
+        AppServices.Instance.Report(pct is int v ? $"{Name}: battery {v}%." : $"{Name} doesn't report a battery level.");
     }
 
     public string Name => _device.Name;
@@ -279,6 +329,7 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
             _saved.Effect = effect.ToString();
             _saved.Color = Color;
             _saved.Color2 = Color2;
+            _saved.LightingSet = true;
         });
     }
 
