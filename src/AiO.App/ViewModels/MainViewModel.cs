@@ -26,7 +26,7 @@ public sealed class MainViewModel : ObservableObject
 
     public AsusViewModel? Asus { get; private set; }
 
-    public const string AsusPageTitle = "ASUS · G-Helper";
+    public const string AsusPageTitle = "Laptop settings";
     public const string SettingsPageTitle = "Settings";
     private const string DisplayGroup = "DISPLAY", InputGroup = "INPUT", SystemGroup = "SYSTEM";
 
@@ -110,7 +110,7 @@ public sealed class MainViewModel : ObservableObject
         ? new(AsusPageTitle, "\uE7F8", SystemGroup, () => new Views.AsusPage { DataContext = asus })
         : new(AsusPageTitle, "\uE7F8", SystemGroup, () => new Views.AsusUnavailablePage { DataContext = new AsusUnavailableViewModel(ReloadAsus) });
 
-    /// <summary>Re-detects the ASUS driver and rebuilds the ASUS page in place (no app restart).</summary>
+    /// <summary>Re-detects the ASUS driver and rebuilds the Laptop settings page in place (no app restart).</summary>
     public void ReloadAsus()
     {
         Asus?.StopSensors();

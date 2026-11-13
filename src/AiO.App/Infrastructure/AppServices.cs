@@ -23,7 +23,7 @@ public sealed class AppServices : IDisposable
     /// <summary>What was found when looking for the ASUS driver (shown when <see cref="Asus"/> is null).</summary>
     public AsusDetection AsusDetection => AsusState.Detection;
 
-    /// <summary>Set when the driver opened but building the ASUS page failed.</summary>
+    /// <summary>Set when the driver opened but building the Laptop settings page failed.</summary>
     public string? AsusLoadError { get; set; }
 
     /// <summary>Closes and re-opens the ASUS driver.</summary>
