@@ -60,7 +60,7 @@ public static class AsusSlash
     };
 
     /// <summary>Brightness 0–3 as the firmware's 0–255 byte.</summary>
-    public static byte BrightnessByte(int level) => (byte)Math.Round(Math.Clamp(level, 0, 3) * 85.333);
+    public static byte BrightnessByte(int level) => (byte)Math.Min(255, (int)(Math.Clamp(level, 0, 3) * 85.333));
 
     private static byte Flag(bool on) => on ? (byte)0x00 : (byte)0x80;
 
