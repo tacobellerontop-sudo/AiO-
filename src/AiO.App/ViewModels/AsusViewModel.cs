@@ -3,6 +3,7 @@ using System.Windows.Threading;
 using AiO.App.Infrastructure;
 using AiO.App.Views;
 using AiO.Core.Asus;
+using AiO.Core.Power;
 using AiO.Core.Razer;
 using AiO.Core.Settings;
 
@@ -43,6 +44,16 @@ public sealed class AsusViewModel : ObservableObject
         AuraAvailable = Probe(AsusAura.IsAvailable, false) || Probe(() => asus.SupportsAcpiKeyboardRgb, false);
 
         _sensorTimer.Tick += (_, _) => ReadSensors();
+        _batteryTimer.Tick += (_, _) => _ = ReadBatteryAsync();
+        _cpuBoost = Probe(() => CpuBoost.IsEnabled(onBattery: false), null);
+        Microsoft.Win32.SystemEvents.PowerModeChanged += (_, e) =>
+        {
+            // "Charge to 100% once" ends when the charger is pulled.
+            if (e.Mode == Microsoft.Win32.PowerModes.StatusChange && _fullChargeOnce
+                && System.Windows.Forms.SystemInformation.PowerStatus.PowerLineStatus == System.Windows.Forms.PowerLineStatus.Offline)
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(EndFullChargeOnce);
+        };
+        FullChargeOnceCommand = new RelayCommand(StartFullChargeOnce, () => !_fullChargeOnce && Saved.BatteryLimit < 100);
 
         RestartCommand = new RelayCommand(SystemIntegration.RestartWindows);
         ApplyBatteryCommand = new RelayCommand(ApplyBattery);
@@ -66,9 +77,65 @@ public sealed class AsusViewModel : ObservableObject
     {
         ReadSensors();
         _sensorTimer.Start();
+        _ = ReadBatteryAsync();
+        _batteryTimer.Start();
     }
 
-    public void StopSensors() => _sensorTimer.Stop();
+    public void StopSensors()
+    {
+        _sensorTimer.Stop();
+        _batteryTimer.Stop();
+    }
+
+    // ---- Battery health, one-time full charge, CPU boost ------------------------------
+
+    private readonly DispatcherTimer _batteryTimer = new() { Interval = TimeSpan.FromSeconds(10) };
+    private string _batteryText = "";
+    private bool _fullChargeOnce;
+    private bool? _cpuBoost;
+
+    public string BatteryText { get => _batteryText; private set => Set(ref _batteryText, value); }
+
+    private async Task ReadBatteryAsync()
+    {
+        try { BatteryText = (await Task.Run(BatteryInfo.Read)).Describe(); }
+        catch (Exception ex) { BatteryText = $"Battery details unavailable: {ex.Message}"; }
+    }
+
+    public ICommand FullChargeOnceCommand { get; }
+    public bool FullChargeOnce => _fullChargeOnce;
+
+    /// <summary>Charges to 100% this time (e.g. before a trip); the saved limit comes back when you unplug.</summary>
+    private void StartFullChargeOnce()
+    {
+        if (!_asus.SetBatteryLimit(100)) { _services.Report("The firmware refused the charge limit."); return; }
+        _fullChargeOnce = true;
+        OnPropertyChanged(nameof(FullChargeOnce));
+        _services.Report($"Charging to 100% this time. The {Saved.BatteryLimit}% limit comes back when you unplug (or restart AiO).");
+    }
+
+    private void EndFullChargeOnce()
+    {
+        if (!_fullChargeOnce) return;
+        _fullChargeOnce = false;
+        OnPropertyChanged(nameof(FullChargeOnce));
+        if (_asus.SetBatteryLimit(Saved.BatteryLimit))
+            _services.ShowOsd("\uE83F", $"Charge limit back to {Saved.BatteryLimit}%");
+    }
+
+    public bool SupportsCpuBoost => _cpuBoost is not null;
+
+    public bool CpuBoostEnabled
+    {
+        get => _cpuBoost == true;
+        set
+        {
+            if (!CpuBoost.Set(value)) { _services.Report("Windows refused the CPU boost change."); OnPropertyChanged(); return; }
+            _cpuBoost = value;
+            OnPropertyChanged();
+            _services.Report(value ? "CPU boost on." : "CPU boost off: cooler and quieter, slower in short bursts.");
+        }
+    }
 
     // ---- Performance mode ---------------------------------------------------
 
@@ -172,6 +239,8 @@ public sealed class AsusViewModel : ObservableObject
         if (_asus.SetBatteryLimit(limit))
         {
             Saved.BatteryLimit = limit;
+            _fullChargeOnce = false;
+            OnPropertyChanged(nameof(FullChargeOnce));
             _services.SaveSettings();
             _services.Report($"Battery will stop charging at {limit}%.");
         }

@@ -30,6 +30,8 @@
                                  IsChecked="{Binding PerformanceMode, Converter={StaticResource EnumEquals}, ConverterParameter=Turbo}" />
                 </StackPanel>
                 <CheckBox Content="Also switch the Windows power mode" IsChecked="{Binding SyncWindowsPowerMode}" Margin="0,12,0,0" />
+                <CheckBox Content="CPU boost (off = cooler and quieter, slower in short bursts)" IsChecked="{Binding CpuBoostEnabled}" Margin="0,6,0,0"
+                          Visibility="{Binding SupportsCpuBoost, Converter={StaticResource Visible}}" />
             </StackPanel>
         </Border>
 
@@ -160,7 +162,7 @@
         <!-- Battery and screen -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <c:CardHeader Glyph="&#xE83F;" Title="Battery and screen" />
+                <c:CardHeader Glyph="&#xE83F;" Title="Battery and screen" Subtitle="{Binding BatteryText}" />
                 <StackPanel Visibility="{Binding SupportsBatteryLimit, Converter={StaticResource Visible}}">
                     <c:SliderRow Label="Charge limit" Minimum="40" Maximum="100" Step="5" Format="{}{0:0}%" Value="{Binding BatteryLimit}" />
                     <StackPanel Orientation="Horizontal" Margin="150,4,0,12">
@@ -168,6 +170,8 @@
                         <Button Content="80%" Command="{Binding BatteryPresetCommand}" CommandParameter="80" Margin="0,0,6,0" />
                         <Button Content="100%" Command="{Binding BatteryPresetCommand}" CommandParameter="100" Margin="0,0,16,0" />
                         <Button Content="Apply" Style="{StaticResource AccentButton}" Command="{Binding ApplyBatteryCommand}" />
+                        <Button Content="Charge to 100% once" Command="{Binding FullChargeOnceCommand}" Margin="8,0,0,0"
+                                ToolTip="For a trip: charges fully this time and puts your limit back when you unplug" />
                     </StackPanel>
                 </StackPanel>
                 <CheckBox Content="Panel overdrive (faster pixel response)" IsChecked="{Binding Overdrive}"
