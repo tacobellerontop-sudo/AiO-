@@ -21,7 +21,7 @@ settings at start-up.
 | **Mouse** | Raw mouse acceleration (linear, classic, natural, synchronous, power, jump) with a live curve editor, applied to every app and raw-input game; Windows pointer speed and Enhance Pointer Precision | [RawAccel](https://github.com/a1xd/rawaccel)'s signed filter driver ships inside AiO; AiO provides the editor, settings and start-up |
 | **Keyboard** | Remap any key, remap shortcuts, launch apps, type text, cycle ASUS modes; optionally only inside specific apps. Works with any keyboard | Low-level keyboard hook, like PowerToys Keyboard Manager |
 | **Razer** | DPI, DPI stages, polling rate up to 8000 Hz, lighting per detected zone, brightness, battery, sleep timer and low-battery warning, **without Synapse** | Razer HID protocol as documented by [OpenRazer](https://github.com/openrazer/openrazer) |
-| **ASUS** | Silent / Balanced / Turbo, Eco / Standard / Ultimate GPU modes, live temperatures and fan RPM, custom fan curves and power limits per mode, battery charge limit, panel overdrive, keyboard backlight | ASUS ATKACPI driver and Aura HID, as documented by [G-Helper](https://github.com/seerge/g-helper) |
+| **ASUS** | Silent / Balanced / Turbo, Eco / Standard / Ultimate GPU modes, live temperatures and fan RPM, custom fan curves and power limits per mode, battery charge limit, panel overdrive, keyboard backlight, **M1–M4 / ROG key and Fn + F4 / F5 hotkeys** with your own actions (mic mute, performance mode, lighting, launch an app, send a shortcut...) | ASUS ATKACPI driver and Aura HID, as documented by [G-Helper](https://github.com/seerge/g-helper) |
 
 The ASUS page only appears on ASUS laptops that have the ASUS System Control Interface driver installed.
 
@@ -35,6 +35,9 @@ The ASUS page only appears on ASUS laptops that have the ASUS System Control Int
 - **Updates:** *Settings → Updates* (or *Check for updates* in the tray menu) fetches the newest build
   from this repo's `latest` release, swaps it in and restarts AiO. Your settings are kept.
 - **Mouse acceleration:** on the Mouse page, click *Install driver* once and restart Windows.
+- **ASUS M-keys:** *ASUS → M-keys and hotkeys* shows the last special key AiO received, so you can tell
+  whether a key reaches AiO at all. Keys AiO doesn't know by name can still be given an action from there.
+  M1/M2 are ordinary volume keys to Windows; rebinding them takes over every volume key.
 - **Keyboard remaps** can't reach apps running as administrator unless AiO is elevated too.
 - **Razer:** quit Synapse before using AiO's Razer page. Two programs sending commands to the same device conflict.
 - **Strong colour temperatures:** Windows limits how far gamma ramps can move. The Colour page has an

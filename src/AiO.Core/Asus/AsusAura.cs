@@ -46,7 +46,7 @@ public static class AsusAura
     public const byte InputReportId = 0x5A;
 
     // Product ids of ASUS laptop keyboard (N-KEY) devices with Aura lighting, from G-Helper.
-    private static readonly HashSet<ushort> AuraProductIds =
+    internal static readonly HashSet<ushort> AuraProductIds =
     [
         0x1A30, 0x1854, 0x1869, 0x1866, 0x19B6, 0x1822, 0x1837, 0x184A, 0x183D, 0x8502, 0x1807, 0x17E0,
         0x1ABE, 0x1B4C, 0x1B6E, 0x1B2C, 0x8854, 0x1CE7, 0x1CE6, 0x1BF2, 0x1BF3, 0x1CD7, 0x1CD8, 0x4B42, 0x18C6,

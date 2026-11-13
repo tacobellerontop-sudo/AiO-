@@ -29,6 +29,16 @@ internal static class Kernel32
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ReadFile(SafeFileHandle hFile, byte[] lpBuffer, uint nNumberOfBytesToRead,
+        out uint lpNumberOfBytesRead, IntPtr lpOverlapped);
+
+    /// <summary>Cancels pending I/O on a handle from any thread (unblocks a ReadFile).</summary>
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool CancelIoEx(SafeFileHandle hFile, IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DeviceIoControl(
         SafeFileHandle hDevice,
         uint dwIoControlCode,

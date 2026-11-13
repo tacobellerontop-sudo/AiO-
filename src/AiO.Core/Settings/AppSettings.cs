@@ -102,6 +102,15 @@ public sealed class AsusSettings
     public AuraSpeed AuraSpeed { get; set; } = AuraSpeed.Normal;
     public int KeyboardBrightness { get; set; } = 3;
 
+    /// <summary>Listen for the M-keys and Fn hotkeys.</summary>
+    public bool HotkeysEnabled { get; set; } = true;
+
+    /// <summary>
+    /// What each ASUS key does, keyed by <see cref="AsusHotkey"/> name ("M3") or raw event code ("Code181").
+    /// Keys without an entry keep their default. Only the action fields of each mapping are used.
+    /// </summary>
+    public Dictionary<string, KeyMapping> Hotkeys { get; set; } = new();
+
     public AsusModeProfile Profile(AsusPerformanceMode mode)
     {
         if (!Profiles.TryGetValue(mode, out var p)) Profiles[mode] = p = new AsusModeProfile();

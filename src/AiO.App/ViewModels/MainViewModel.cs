@@ -33,14 +33,21 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Created up front: the keyboard hook runs whether or not its page is open.</summary>
     public KeyboardViewModel Keyboard { get; }
 
+    /// <summary>Runs the actions bound to keyboard remaps and ASUS keys.</summary>
+    public ActionRunner Actions { get; }
+
+    /// <summary>ASUS M-key / Fn hotkey listener; null when the ASUS driver isn't there.</summary>
+    public AsusHotkeysViewModel? Hotkeys { get; private set; }
+
     public UpdateViewModel Updates => UpdateViewModel.Instance;
 
     public string Version => "Version " + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "");
 
     public MainViewModel()
     {
+        Actions = new ActionRunner(() => Asus);
         LoadAsus();
-        Keyboard = new KeyboardViewModel(() => Asus);
+        Keyboard = new KeyboardViewModel(Actions);
 
         // Segoe Fluent Icons / MDL2 glyphs.
         var pages = new List<NavItem>
@@ -81,7 +88,11 @@ public sealed class MainViewModel : ObservableObject
         var services = AppServices.Instance;
         try
         {
-            if (services.Asus is { } asus) Asus = new AsusViewModel(asus);
+            if (services.Asus is { } asus)
+            {
+                Hotkeys ??= new AsusHotkeysViewModel(Actions);
+                Asus = new AsusViewModel(asus) { Hotkeys = Hotkeys };
+            }
         }
         catch (Exception ex)
         {
@@ -102,6 +113,7 @@ public sealed class MainViewModel : ObservableObject
         Asus = null;
         AppServices.Instance.ReloadAsus();
         LoadAsus();
+        Hotkeys?.Restart(); // the ACPI handle changed
 
         int index = Pages.ToList().FindIndex(p => p.Title == AsusPageTitle);
         var page = CreateAsusPage();

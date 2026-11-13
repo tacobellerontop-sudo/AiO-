@@ -25,6 +25,9 @@ public sealed class AsusViewModel : ObservableObject
 
     private AsusSettings Saved => _services.Settings.Current.Asus;
 
+    /// <summary>M-key and Fn hotkey bindings (shown on the ASUS page).</summary>
+    public AsusHotkeysViewModel? Hotkeys { get; init; }
+
     public AsusViewModel(AsusLaptop asus)
     {
         _asus = asus;
@@ -292,6 +295,34 @@ public sealed class AsusViewModel : ObservableObject
     public AuraSpeed AuraSpeed { get => Saved.AuraSpeed; set { Saved.AuraSpeed = value; OnPropertyChanged(); } }
     public double KeyboardBrightness { get => Saved.KeyboardBrightness; set { Saved.KeyboardBrightness = (int)value; OnPropertyChanged(); } }
     public ICommand ApplyKeyboardCommand { get; }
+
+    /// <summary>Hotkey action: switches to the next lighting effect and applies it.</summary>
+    public void NextAuraMode()
+    {
+        var modes = AuraModes;
+        int index = Array.IndexOf(modes.ToArray(), AuraMode);
+        AuraMode = modes[(index + 1) % modes.Count];
+        ApplyKeyboard();
+        _services.Report($"Keyboard lighting: {AuraMode}.");
+    }
+
+    /// <summary>Hotkey action: one brightness step up (wrapping from max to off) or down.</summary>
+    public void StepKeyboardBrightness(int delta)
+    {
+        int level = Saved.KeyboardBrightness + delta;
+        level = level > 3 ? 0 : Math.Max(0, level);
+        KeyboardBrightness = level;
+        try
+        {
+            AsusAura.SetBrightness(level, _asus.Acpi);
+            _services.SaveSettings();
+            _services.Report(level == 0 ? "Keyboard backlight off." : $"Keyboard backlight {level}/3.");
+        }
+        catch (Exception ex)
+        {
+            _services.Report($"Keyboard backlight failed: {ex.Message}");
+        }
+    }
 
     private void ApplyKeyboard()
     {

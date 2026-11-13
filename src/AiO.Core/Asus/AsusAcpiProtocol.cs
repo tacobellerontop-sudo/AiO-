@@ -66,6 +66,8 @@ public static class AsusAcpiProtocol
     public const uint IoControlCode = 0x0022240C;
     public const uint MethodGet = 0x53545344; // "DSTS"
     public const uint MethodSet = 0x53564544; // "DEVS"
+    /// <summary>Init call that asks the firmware to start reporting hotkey events.</summary>
+    public const uint MethodInit = 0x54494E49; // "INIT"
 
     /// <summary>Call buffer: method id, argument length, arguments (all little-endian).</summary>
     public static byte[] BuildCall(uint methodId, ReadOnlySpan<byte> args)

@@ -66,6 +66,12 @@ public sealed class AsusAcpi : IDisposable
     public int Set(uint deviceId, byte[] payload) =>
         BitConverter.ToInt32(Call(AsusAcpiProtocol.MethodSet, AsusAcpiProtocol.DeviceArgs(deviceId, payload)));
 
+    /// <summary>
+    /// The INIT call ASUS software makes at start-up. Without it some firmware never raises
+    /// hotkey events (M-keys, Fn keys) when ASUS's own services aren't installed.
+    /// </summary>
+    public void InitHotkeys() => Call(AsusAcpiProtocol.MethodInit, new byte[8]);
+
     public bool IsSupported(uint deviceId)
     {
         lock (_supported)

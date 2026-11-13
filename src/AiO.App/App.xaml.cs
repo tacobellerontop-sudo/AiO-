@@ -45,7 +45,7 @@ public partial class App : Application
         if (services.Settings.Current.General.ApplyOnStartup) StartupApplier.ApplyAll(services);
 
         _viewModel = new MainViewModel();
-        _viewModel.Keyboard.OpenAiORequested = ShowMainWindow;
+        _viewModel.Actions.OpenAiORequested = ShowMainWindow;
         _tray = new TrayIcon(services.Asus is not null, () => ColorPresets.All.Select(p => p.Name));
         _tray.ColorPresetRequested += name =>
         {
@@ -142,6 +142,7 @@ public partial class App : Application
         _window?.Close();
         _tray?.Dispose();
         _viewModel?.Keyboard.Dispose();
+        _viewModel?.Hotkeys?.Dispose();
         AppServices.Instance.Dispose();
         Shutdown();
     }

@@ -1,7 +1,8 @@
 <UserControl x:Class="AiO.App.Views.AsusPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:AiO.App.Controls">
+             xmlns:c="clr-namespace:AiO.App.Controls"
+             Focusable="True" PreviewKeyDown="OnPreviewKeyDown">
     <StackPanel>
         <c:PageHeader Glyph="&#xE7F8;" Title="ASUS · G-Helper"
                       Subtitle="G-Helper-style control of ROG, TUF and Vivobook laptops through the ASUS ACPI driver, without Armoury Crate. Leave AiO running in the tray: the firmware forgets fan curves and charge limits on reboot, and AiO re-applies them." />
@@ -51,6 +52,67 @@
                 <Button Content="Restart now" Style="{StaticResource AccentButton}" Command="{Binding RestartCommand}"
                         HorizontalAlignment="Left" Margin="0,10,0,0"
                         Visibility="{Binding RestartPending, Converter={StaticResource Visible}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- M-keys and hotkeys -->
+        <Border Style="{StaticResource Card}" DataContext="{Binding Hotkeys}"
+                Visibility="{Binding DataContext.Hotkeys, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE144;" Title="M-keys and hotkeys"
+                              Subtitle="Choose what M1–M4 (the ROG key), Fn + F4 and Fn + F5 do. Works without Armoury Crate while AiO runs in the tray.">
+                    <CheckBox Content="On" IsChecked="{Binding Enabled}" />
+                </c:CardHeader>
+
+                <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{Binding LastEvent}" FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ListenerStatus}" Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,0" />
+                        <Button Content="{Binding UnknownKeyText}" Command="{Binding AddUnknownCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                Visibility="{Binding HasUnknownKey, Converter={StaticResource Visible}}" />
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding ServiceNote}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"
+                           Visibility="{Binding ServiceNote, Converter={StaticResource Visible}}" />
+
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap"
+                                                   Visibility="{Binding HasHint, Converter={StaticResource Visible}}" />
+                                    </StackPanel>
+                                    <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="260"
+                                                  MaxDropDownHeight="400" Margin="0,0,10,4" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,4"
+                                                    Visibility="{Binding ShowTarget, Converter={StaticResource Visible}}">
+                                            <TextBlock Text="{Binding TargetText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <Button Content="Record" Command="{Binding RecordCommand}" />
+                                        </StackPanel>
+                                        <TextBox Text="{Binding Text}" Width="220" Margin="0,0,10,4"
+                                                 Visibility="{Binding ShowText, Converter={StaticResource Visible}}" />
+                                        <TextBox Text="{Binding Command}" Width="260" Margin="0,0,10,4" ToolTip="Program, file or URL"
+                                                 Visibility="{Binding ShowCommand, Converter={StaticResource Visible}}" />
+                                        <ComboBox ItemsSource="{Binding PresetNames}" SelectedItem="{Binding Preset}" Width="180" Margin="0,0,10,4"
+                                                  Visibility="{Binding ShowPreset, Converter={StaticResource Visible}}" />
+                                        <Button Content="&#xE74D;" FontFamily="{StaticResource IconFont}" Command="{Binding RemoveCommand}" ToolTip="Remove"
+                                                Margin="0,0,0,4" Visibility="{Binding CanRemove, Converter={StaticResource Visible}}" />
+                                    </WrapPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                           Text="If a key does nothing, press it and check the line above. No line at all means the firmware didn't report it: make sure the ASUS System Control Interface driver is installed. A key shown as an unknown code can be given an action with the button that appears." />
             </StackPanel>
         </Border>
 
