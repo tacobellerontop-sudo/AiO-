@@ -141,6 +141,9 @@ public partial class App : Application
     public void ExitApp()
     {
         _exiting = true;
+        // A clean exit isn't a crash: don't let the undervolt crash guard trip next start.
+        var ryzen = AppServices.Instance.Settings.Current.Asus.Ryzen;
+        if (ryzen.AutoApplyPendingSince is not null) { ryzen.AutoApplyPendingSince = null; AppServices.Instance.SaveSettings(); }
         _window?.Close();
         _tray?.Dispose();
         _viewModel?.Keyboard.Dispose();

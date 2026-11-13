@@ -53,6 +53,7 @@ public sealed class AsusViewModel : ObservableObject
         ApplyKeyboardCommand = new RelayCommand(ApplyKeyboard);
 
         LoadEditingProfile();
+        if (Saved.DangerZoneUnlocked) RefreshRyzenStatus();
     }
 
     private static T Probe<T>(Func<T> read, T fallback)
@@ -298,6 +299,122 @@ public sealed class AsusViewModel : ObservableObject
     public AuraSpeed AuraSpeed { get => Saved.AuraSpeed; set { Saved.AuraSpeed = value; OnPropertyChanged(); } }
     public double KeyboardBrightness { get => Saved.KeyboardBrightness; set { Saved.KeyboardBrightness = (int)value; OnPropertyChanged(); } }
     public ICommand ApplyKeyboardCommand { get; }
+
+    // ---- Danger zone: power limits and CPU undervolting --------------------------------
+
+    public bool DangerZoneUnlocked
+    {
+        get => Saved.DangerZoneUnlocked;
+        set
+        {
+            Saved.DangerZoneUnlocked = value;
+            if (!value) Saved.Ryzen.ApplyAutomatically = false;
+            _services.SaveSettings();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(RyzenApplyAutomatically));
+            if (value) RefreshRyzenStatus();
+        }
+    }
+
+    private RyzenTuningSettings Ryzen => Saved.Ryzen;
+    private string _ryzenStatus = "";
+    public string RyzenStatus { get => _ryzenStatus; private set => Set(ref _ryzenStatus, value); }
+    private bool _pawnIoMissing;
+    public bool PawnIoMissing { get => _pawnIoMissing; private set => Set(ref _pawnIoMissing, value); }
+    public bool NeedsAdmin => !AppServices.IsAdministrator;
+
+    public double CurveOffset { get => Ryzen.CurveOffset; set { Ryzen.CurveOffset = (int)value; OnPropertyChanged(); } }
+    public bool UseTempLimit
+    {
+        get => Ryzen.TempLimit is not null;
+        set { Ryzen.TempLimit = value ? (int)TempLimit : null; OnPropertyChanged(); }
+    }
+    private double _tempLimit = 90;
+    public double TempLimit
+    {
+        get => Ryzen.TempLimit ?? _tempLimit;
+        set { _tempLimit = value; if (Ryzen.TempLimit is not null) Ryzen.TempLimit = (int)value; OnPropertyChanged(); }
+    }
+    public bool RyzenApplyAutomatically
+    {
+        get => Ryzen.ApplyAutomatically;
+        set { Ryzen.ApplyAutomatically = value; _services.SaveSettings(); OnPropertyChanged(); }
+    }
+
+    public ICommand ApplyRyzenCommand => new RelayCommand(() => RunRyzen(apply: true));
+    public ICommand ResetRyzenCommand => new RelayCommand(() => RunRyzen(apply: false));
+    public ICommand InstallPawnIoCommand => new RelayCommand(() => SystemIntegration.OpenUrl(RyzenTuning.PawnIoUrl));
+    public ICommand RestartAsAdminCommand => new RelayCommand(() =>
+    {
+        if (SystemIntegration.RestartAsAdministrator()) ((App)System.Windows.Application.Current).ExitApp();
+    });
+
+    private void RefreshRyzenStatus()
+    {
+        Task.Run(() =>
+        {
+            using var smu = RyzenTuning.Open(out string problem);
+            string text = smu is null ? problem
+                : smu.Family == AiO.Core.Ryzen.RyzenFamily.Unsupported ? $"Connected, but AiO doesn't know how to tune this CPU ({smu.CodeName})."
+                : $"Ready: {smu.CodeName} CPU via PawnIO.";
+            bool missing = problem.Contains("PawnIO driver isn't installed");
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => { RyzenStatus = text; PawnIoMissing = missing; });
+        });
+    }
+
+    private void RunRyzen(bool apply)
+    {
+        if (!apply)
+        {
+            Ryzen.CurveOffset = 0;
+            Ryzen.TempLimit = null;
+            OnPropertyChanged(nameof(CurveOffset));
+            OnPropertyChanged(nameof(UseTempLimit));
+        }
+        _services.SaveSettings();
+        // Resetting sends offset 0 and the stock 100 °C limit so the CPU is back to defaults now, not after a reboot.
+        var send = apply ? Ryzen : new RyzenTuningSettings { CurveOffset = 0, TempLimit = AiO.Core.Ryzen.RyzenSmuProtocol.MaxTempLimit };
+        Task.Run(() =>
+        {
+            string result = RyzenTuning.Apply(send);
+            _services.Report(result);
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => RyzenStatus = result);
+        });
+    }
+
+    // ---- Slash lid lighting --------------------------------------------------------
+
+    public bool SlashAvailable { get; } = AsusSlash.IsSlashModel(SystemInfo.ReadBios().Model);
+    private SlashSettings Slash => Saved.Slash;
+    public IReadOnlyList<SlashEffect> SlashEffects { get; } = Enum.GetValues<SlashEffect>();
+    public bool SlashOn { get => Slash.On; set { Slash.On = value; OnPropertyChanged(); } }
+    public SlashEffect SelectedSlashEffect { get => Slash.Effect; set { Slash.Effect = value; OnPropertyChanged(); } }
+    public double SlashBrightness { get => Slash.Brightness; set { Slash.Brightness = (int)value; OnPropertyChanged(); } }
+    public double SlashInterval { get => Slash.Interval; set { Slash.Interval = (int)value; OnPropertyChanged(); } }
+    public bool SlashOnBattery { get => Slash.OnBattery; set { Slash.OnBattery = value; OnPropertyChanged(); } }
+    public bool SlashOnLidClosed { get => Slash.OnLidClosed; set { Slash.OnLidClosed = value; OnPropertyChanged(); } }
+    public ICommand ApplySlashCommand => new RelayCommand(ApplySlash);
+
+    private void ApplySlash()
+    {
+        try
+        {
+            if (StartupApplier.ApplySlash(Slash))
+            {
+                Slash.Manage = true;
+                _services.SaveSettings();
+                _services.Report(Slash.On ? $"Slash lighting: {Slash.Effect}." : "Slash lighting off.");
+            }
+            else
+            {
+                _services.Report("The Slash lighting didn't accept the command. Close Armoury Crate or G-Helper and try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _services.Report($"Slash lighting failed: {ex.Message}");
+        }
+    }
 
     // ---- Fn-lock, touchpad, camera -------------------------------------------------
 
