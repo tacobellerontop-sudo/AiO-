@@ -1,3 +1,4 @@
+using System.IO;
 using AiO.Core.Ryzen;
 using AiO.Core.Settings;
 
