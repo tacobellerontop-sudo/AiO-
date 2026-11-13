@@ -128,7 +128,10 @@
             <StackPanel>
                 <c:CardHeader Glyph="&#xE706;" Title="Software colour"
                               Subtitle="Gamma-ramp adjustments that work on any GPU and monitor. Windows Night Light overrides these while it's on.">
-                    <Button Content="Reset" Command="{Binding ResetGammaCommand}" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Copy to all displays" Command="{Binding CopyToAllCommand}" Margin="0,0,8,0" />
+                        <Button Content="Reset" Command="{Binding ResetGammaCommand}" />
+                    </StackPanel>
                 </c:CardHeader>
                 <c:SliderRow Label="Colour temperature" Minimum="1900" Maximum="10000" Step="100" Format="{}{0:0} K" Value="{Binding Temperature}" />
                 <c:SliderRow Label="Gamma" Minimum="0.5" Maximum="2.5" Step="0.05" Format="{}{0:0.00}" Value="{Binding GammaValue}" />
@@ -143,6 +146,23 @@
                     <TextBlock Style="{StaticResource Warning}" VerticalAlignment="Center"
                                Text="Windows limits how far the gamma ramp can move, so strong warm temperatures may be refused. Unlocking needs admin rights and a sign-out." />
                 </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Night schedule -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE708;" Title="Night colours" Subtitle="{Binding NightStatus}" />
+                <CheckBox Content="Warm every screen on a schedule" IsChecked="{Binding NightEnabled}" Margin="0,0,0,10" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="From" Style="{StaticResource Label}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ComboBox ItemsSource="{Binding Times}" SelectedItem="{Binding NightStart}" Width="90" />
+                    <TextBlock Text="to" Style="{StaticResource Label}" VerticalAlignment="Center" Margin="12,0,8,0" />
+                    <ComboBox ItemsSource="{Binding Times}" SelectedItem="{Binding NightEnd}" Width="90" />
+                </StackPanel>
+                <c:SliderRow Label="Night temperature" Minimum="1900" Maximum="6500" Step="100" Format="{}{0:0} K" Value="{Binding NightTemperature}" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"
+                           Text="Works on top of your software colour and presets, and only ever makes screens warmer. Keep Windows Night Light off, or the two fight over the screen." />
             </StackPanel>
         </Border>
     </StackPanel>

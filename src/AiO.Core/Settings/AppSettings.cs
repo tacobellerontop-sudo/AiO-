@@ -19,6 +19,22 @@ public sealed class AppSettings
     public KeyboardSettings Keyboard { get; set; } = new();
     /// <summary>User-made colour presets (built-in ones live in <see cref="ColorPreset.BuiltIn"/>).</summary>
     public List<ColorPreset> ColorPresets { get; set; } = [];
+    public NightScheduleSettings Night { get; set; } = new();
+}
+
+/// <summary>Warmer colours between two times of day, on top of each display's own colour settings.</summary>
+public sealed class NightScheduleSettings
+{
+    public bool Enabled { get; set; }
+    /// <summary>Minutes after midnight.</summary>
+    public int StartMinutes { get; set; } = 21 * 60;
+    public int EndMinutes { get; set; } = 7 * 60;
+    public int Temperature { get; set; } = 3400;
+
+    /// <summary>True when <paramref name="minuteOfDay"/> falls in the night window (which may wrap past midnight).</summary>
+    public bool IsNight(int minuteOfDay) => StartMinutes <= EndMinutes
+        ? minuteOfDay >= StartMinutes && minuteOfDay < EndMinutes
+        : minuteOfDay >= StartMinutes || minuteOfDay < EndMinutes;
 }
 
 public sealed class MouseSettings
