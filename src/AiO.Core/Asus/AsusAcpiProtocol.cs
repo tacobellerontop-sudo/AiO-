@@ -37,6 +37,9 @@ public static class AsusDeviceIds
     public const uint GpuTempTarget = 0x001200C2;
 
     public const uint KeyboardBrightnessAcpi = 0x00050021;
+
+    public const uint FnLock = 0x00100023;
+    public const uint CameraShutter = 0x00060078;
 }
 
 public enum AsusPerformanceMode
@@ -66,6 +69,8 @@ public static class AsusAcpiProtocol
     public const uint IoControlCode = 0x0022240C;
     public const uint MethodGet = 0x53545344; // "DSTS"
     public const uint MethodSet = 0x53564544; // "DEVS"
+    /// <summary>Init call that asks the firmware to start reporting hotkey events.</summary>
+    public const uint MethodInit = 0x54494E49; // "INIT"
 
     /// <summary>Call buffer: method id, argument length, arguments (all little-endian).</summary>
     public static byte[] BuildCall(uint methodId, ReadOnlySpan<byte> args)

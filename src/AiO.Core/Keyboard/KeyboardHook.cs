@@ -142,6 +142,23 @@ public sealed class KeyboardHook : IDisposable
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
     }
 
+    /// <summary>Taps a key or shortcut (modifiers down, key down/up, modifiers up). The hook lets it through untouched.</summary>
+    public static void SendChord(KeyChord chord)
+    {
+        var mods = new List<int>();
+        if (chord.Modifiers.HasFlag(KeyModifiers.Ctrl)) mods.Add(VirtualKeys.LControl);
+        if (chord.Modifiers.HasFlag(KeyModifiers.Alt)) mods.Add(VirtualKeys.LAlt);
+        if (chord.Modifiers.HasFlag(KeyModifiers.Shift)) mods.Add(VirtualKeys.LShift);
+        if (chord.Modifiers.HasFlag(KeyModifiers.Win)) mods.Add(VirtualKeys.LWin);
+
+        var outputs = new List<KeyOutput>();
+        foreach (var m in mods) outputs.Add(new(m, true));
+        outputs.Add(new(chord.Key, true));
+        outputs.Add(new(chord.Key, false));
+        for (int i = mods.Count - 1; i >= 0; i--) outputs.Add(new(mods[i], false));
+        Send(outputs);
+    }
+
     /// <summary>Types text into the focused app (works for any character, independent of layout).</summary>
     public static void TypeText(string text)
     {

@@ -1,9 +1,6 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Windows;
 using System.Windows.Input;
 using AiO.App.Infrastructure;
-using AiO.Core.Asus;
 using AiO.Core.Keyboard;
 
 namespace AiO.App.ViewModels;
@@ -17,14 +14,14 @@ public sealed record KeyItem(int Vk, string Name)
 public sealed class KeyboardViewModel : ObservableObject, IDisposable
 {
     private readonly AppServices _services = AppServices.Instance;
-    private readonly Func<AsusViewModel?> _asus;
+    private readonly ActionRunner _actions;
     private KeyboardHook? _hook;
     private KeyMappingViewModel? _editing;
     private bool _isNew;
 
-    public KeyboardViewModel(Func<AsusViewModel?> asus)
+    public KeyboardViewModel(ActionRunner actions)
     {
-        _asus = asus;
+        _actions = actions;
         foreach (var m in Saved.Mappings) Mappings.Add(new KeyMappingViewModel(m, this));
 
         AddCommand = new RelayCommand(() => BeginEdit(new KeyMapping(), isNew: true));
@@ -36,9 +33,6 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
     }
 
     private KeyboardSettings Saved => _services.Settings.Current.Keyboard;
-
-    /// <summary>Called when a mapping asks to show the AiO window.</summary>
-    public Action? OpenAiORequested { get; set; }
 
     public ObservableCollection<KeyMappingViewModel> Mappings { get; } = [];
     public bool HasMappings => Mappings.Count > 0;
@@ -161,44 +155,11 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
         if (_hook is null)
         {
             _hook = new KeyboardHook(ActiveMappings());
-            _hook.ActionTriggered += OnAction;
+            _hook.ActionTriggered += _actions.Run;
         }
         else if (Editor is null)
         {
             _hook.UpdateMappings(ActiveMappings());
-        }
-    }
-
-    private void OnAction(KeyMapping m)
-    {
-        switch (m.Action)
-        {
-            case KeyActionType.TypeText when !string.IsNullOrEmpty(m.Text):
-                KeyboardHook.TypeText(m.Text);
-                break;
-            case KeyActionType.Run when !string.IsNullOrWhiteSpace(m.Command):
-                try { Process.Start(new ProcessStartInfo(m.Command) { UseShellExecute = true }); }
-                catch (Exception ex) { _services.Report($"Couldn't run \"{m.Command}\": {ex.Message}"); }
-                break;
-            case KeyActionType.CycleAsusMode:
-                Application.Current.Dispatcher.BeginInvoke(() =>
-                {
-                    if (_asus() is not { } asus) { _services.Report("ASUS controls aren't available."); return; }
-                    asus.PerformanceMode = asus.PerformanceMode switch
-                    {
-                        AsusPerformanceMode.Silent => AsusPerformanceMode.Balanced,
-                        AsusPerformanceMode.Balanced => AsusPerformanceMode.Turbo,
-                        _ => AsusPerformanceMode.Silent,
-                    };
-                });
-                break;
-            case KeyActionType.ApplyColorPreset:
-                if (ColorPresets.Find(m.Text) is { } preset) _ = ColorPresets.ApplyToAllAsync(preset);
-                else _services.Report($"No colour preset called \"{m.Text}\".");
-                break;
-            case KeyActionType.OpenAiO:
-                Application.Current.Dispatcher.BeginInvoke(() => OpenAiORequested?.Invoke());
-                break;
         }
     }
 

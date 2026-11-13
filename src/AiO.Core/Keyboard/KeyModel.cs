@@ -45,6 +45,24 @@ public enum KeyActionType
     OpenAiO,
     /// <summary>Apply the colour preset named in <see cref="KeyMapping.Text"/> to every display.</summary>
     ApplyColorPreset,
+    /// <summary>Mute or unmute the default microphone.</summary>
+    MicrophoneMute,
+    /// <summary>Switch the ASUS keyboard to its next lighting effect.</summary>
+    NextKeyboardLighting,
+    /// <summary>One step brighter on the ASUS keyboard backlight (wraps from max to off).</summary>
+    KeyboardBrightnessUp,
+    /// <summary>One step dimmer on the ASUS keyboard backlight.</summary>
+    KeyboardBrightnessDown,
+    /// <summary>Lock Windows.</summary>
+    LockScreen,
+    /// <summary>Turn the displays off until the mouse or keyboard is used.</summary>
+    ScreenOff,
+    /// <summary>Turn the touchpad on or off (Windows' own Ctrl+Win+F24 toggle).</summary>
+    ToggleTouchpad,
+    /// <summary>Toggle the ASUS Fn-lock.</summary>
+    ToggleFnLock,
+    /// <summary>Turn the camera on or off on ASUS models with a software camera switch.</summary>
+    ToggleCamera,
 }
 
 public sealed class KeyMapping
@@ -69,13 +87,32 @@ public sealed class KeyMapping
     public string Description => Action switch
     {
         KeyActionType.SendKeys => Target?.ToString() ?? "(nothing)",
-        KeyActionType.Disable => "Disabled",
         KeyActionType.TypeText => $"Type \"{Text}\"",
         KeyActionType.Run => $"Run {Command}",
+        KeyActionType.ApplyColorPreset => $"Colour preset \"{Text}\"",
+        _ => DescribeAction(Action),
+    };
+
+    /// <summary>A short label for an action without its details.</summary>
+    public static string DescribeAction(KeyActionType action) => action switch
+    {
+        KeyActionType.SendKeys => "Send a key or shortcut",
+        KeyActionType.Disable => "Disabled",
+        KeyActionType.TypeText => "Type text",
+        KeyActionType.Run => "Run a program, file or URL",
         KeyActionType.CycleAsusMode => "Next ASUS performance mode",
         KeyActionType.OpenAiO => "Open AiO",
-        KeyActionType.ApplyColorPreset => $"Colour preset \"{Text}\"",
-        _ => Action.ToString(),
+        KeyActionType.ApplyColorPreset => "Apply a colour preset",
+        KeyActionType.MicrophoneMute => "Mute / unmute microphone",
+        KeyActionType.NextKeyboardLighting => "Next keyboard lighting effect",
+        KeyActionType.KeyboardBrightnessUp => "Keyboard backlight brighter",
+        KeyActionType.KeyboardBrightnessDown => "Keyboard backlight dimmer",
+        KeyActionType.LockScreen => "Lock the PC",
+        KeyActionType.ScreenOff => "Turn the screen off",
+        KeyActionType.ToggleTouchpad => "Touchpad on / off",
+        KeyActionType.ToggleFnLock => "Fn-lock on / off",
+        KeyActionType.ToggleCamera => "Camera on / off",
+        _ => action.ToString(),
     };
 
     public bool AppliesTo(string? foregroundApp)

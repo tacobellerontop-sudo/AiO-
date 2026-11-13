@@ -7,6 +7,10 @@
     <RootNamespace>AiO.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <!-- WMI events for ASUS hotkeys (AsusAtkWmiEvent). -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="AiO.Core.Tests" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,8 @@
 <UserControl x:Class="AiO.App.Views.AsusPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:AiO.App.Controls">
+             xmlns:c="clr-namespace:AiO.App.Controls"
+             Focusable="True" PreviewKeyDown="OnPreviewKeyDown">
     <StackPanel>
         <c:PageHeader Glyph="&#xE7F8;" Title="ASUS · G-Helper"
                       Subtitle="G-Helper-style control of ROG, TUF and Vivobook laptops through the ASUS ACPI driver, without Armoury Crate. Leave AiO running in the tray: the firmware forgets fan curves and charge limits on reboot, and AiO re-applies them." />
@@ -54,11 +55,75 @@
             </StackPanel>
         </Border>
 
+        <!-- M-keys and hotkeys -->
+        <Border Style="{StaticResource Card}" DataContext="{Binding Hotkeys}"
+                Visibility="{Binding DataContext.Hotkeys, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE144;" Title="M-keys and hotkeys"
+                              Subtitle="Choose what M1–M4 (the ROG key), Fn + F4 and Fn + F5 do. Works without Armoury Crate while AiO runs in the tray.">
+                    <CheckBox Content="On" IsChecked="{Binding Enabled}" />
+                </c:CardHeader>
+
+                <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{Binding LastEvent}" FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ListenerStatus}" Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,0" />
+                        <Button Content="{Binding UnknownKeyText}" Command="{Binding AddUnknownCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                Visibility="{Binding HasUnknownKey, Converter={StaticResource Visible}}" />
+                    </StackPanel>
+                </Border>
+                <CheckBox Content="Show a popup when a key or the charger switches something"
+                          DataContext="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          IsChecked="{Binding ShowOsd}" Margin="0,0,0,10" />
+                <TextBlock Text="{Binding ServiceNote}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"
+                           Visibility="{Binding ServiceNote, Converter={StaticResource Visible}}" />
+
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Hint}" Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap"
+                                                   Visibility="{Binding HasHint, Converter={StaticResource Visible}}" />
+                                    </StackPanel>
+                                    <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}" Width="260"
+                                                  MaxDropDownHeight="400" Margin="0,0,10,4" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,10,4"
+                                                    Visibility="{Binding ShowTarget, Converter={StaticResource Visible}}">
+                                            <TextBlock Text="{Binding TargetText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <Button Content="Record" Command="{Binding RecordCommand}" />
+                                        </StackPanel>
+                                        <TextBox Text="{Binding Text}" Width="220" Margin="0,0,10,4"
+                                                 Visibility="{Binding ShowText, Converter={StaticResource Visible}}" />
+                                        <TextBox Text="{Binding Command}" Width="260" Margin="0,0,10,4" ToolTip="Program, file or URL"
+                                                 Visibility="{Binding ShowCommand, Converter={StaticResource Visible}}" />
+                                        <ComboBox ItemsSource="{Binding PresetNames}" SelectedItem="{Binding Preset}" Width="180" Margin="0,0,10,4"
+                                                  Visibility="{Binding ShowPreset, Converter={StaticResource Visible}}" />
+                                        <Button Content="&#xE74D;" FontFamily="{StaticResource IconFont}" Command="{Binding RemoveCommand}" ToolTip="Remove"
+                                                Margin="0,0,0,4" Visibility="{Binding CanRemove, Converter={StaticResource Visible}}" />
+                                    </WrapPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                           Text="If a key does nothing, press it and check the line above. No line at all means the firmware didn't report it: make sure the ASUS System Control Interface driver is installed. A key shown as an unknown code can be given an action with the button that appears." />
+            </StackPanel>
+        </Border>
+
         <!-- Fans and power -->
         <Border Style="{StaticResource Card}" Visibility="{Binding SupportsFanCurves, Converter={StaticResource Visible}}">
             <StackPanel>
-                <c:CardHeader Glyph="&#xE9CA;" Title="Fans and power"
-                              Subtitle="Each performance mode has its own fan curves and power limits. Drag the points to shape a curve." />
+                <c:CardHeader Glyph="&#xE9CA;" Title="Fans"
+                              Subtitle="Each performance mode has its own fan curves. Drag the points to shape a curve. Power limits are in the Danger zone below." />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <TextBlock Text="Editing" Style="{StaticResource Label}" />
                     <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding EditingMode}" Width="140" />
@@ -89,19 +154,6 @@
                     <Button Content="Load built-in curves" Command="{Binding LoadFirmwareCurvesCommand}" />
                 </StackPanel>
 
-                <StackPanel Visibility="{Binding SupportsPowerLimits, Converter={StaticResource Visible}}" Margin="0,22,0,0">
-                    <CheckBox Content="Use custom power limits in this mode" IsChecked="{Binding CustomPowerLimits}" />
-                    <c:SliderRow Label="CPU sustained (SPL)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SustainedWatts}" />
-                    <c:SliderRow Label="CPU slow boost (sPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SlowWatts}" />
-                    <c:SliderRow Label="CPU fast boost (fPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding FastWatts}" />
-                    <StackPanel Visibility="{Binding SupportsGpuPowerTuning, Converter={StaticResource Visible}}">
-                        <c:SliderRow Label="GPU dynamic boost" Minimum="5" Maximum="25" Format="{}{0:0} W" Value="{Binding GpuDynamicBoost}" />
-                        <c:SliderRow Label="GPU temp target" Minimum="75" Maximum="87" Format="{}{0:0} °C" Value="{Binding GpuTempTarget}" />
-                    </StackPanel>
-                    <TextBlock Style="{StaticResource Warning}" Margin="0,6,0,10"
-                               Text="Limits above what your laptop's cooling can handle cause throttling, not extra speed. The firmware clamps out-of-range values." />
-                    <Button Content="Apply power limits" Style="{StaticResource AccentButton}" Command="{Binding ApplyPowerCommand}" HorizontalAlignment="Left" />
-                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -120,6 +172,75 @@
                 </StackPanel>
                 <CheckBox Content="Panel overdrive (faster pixel response)" IsChecked="{Binding Overdrive}"
                           Visibility="{Binding SupportsOverdrive, Converter={StaticResource Visible}}" />
+                <StackPanel DataContext="{Binding Automation}" Margin="0,14,0,0"
+                            Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+                    <TextBlock Text="{Binding RefreshText}" Margin="0,0,0,6" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="60 Hz" Command="{Binding SetRefreshCommand}" CommandParameter="Lowest" Margin="0,0,6,0" />
+                        <Button Content="Highest refresh rate" Command="{Binding SetRefreshCommand}" CommandParameter="Highest" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Plugged in / on battery -->
+        <Border Style="{StaticResource Card}" DataContext="{Binding Automation}"
+                Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE83E;" Title="Plugged in and on battery"
+                              Subtitle="Switch performance mode, GPU and screen refresh rate automatically when you plug in or unplug the charger.">
+                    <CheckBox Content="On" IsChecked="{Binding AutoSwitch}" />
+                </c:CardHeader>
+                <TextBlock Text="{Binding PowerSourceText}" Style="{StaticResource Muted}" Margin="0,0,0,10" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Column="1" Text="Plugged in" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <TextBlock Grid.Column="3" Text="On battery" FontWeight="SemiBold" Margin="0,0,0,6" />
+
+                    <TextBlock Grid.Row="1" Text="Mode" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" DataContext="{Binding AcProfile}" ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding Mode}" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="1" Grid.Column="3" DataContext="{Binding BatteryProfile}" ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding Mode}" Margin="0,0,0,8" />
+
+                    <TextBlock Grid.Row="2" Text="GPU" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" DataContext="{Binding AcProfile}" ItemsSource="{Binding GpuOptions}" SelectedItem="{Binding Gpu}" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="2" Grid.Column="3" DataContext="{Binding BatteryProfile}" ItemsSource="{Binding GpuOptions}" SelectedItem="{Binding Gpu}" Margin="0,0,0,8" />
+
+                    <TextBlock Grid.Row="3" Text="Screen" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="3" Grid.Column="1" DataContext="{Binding AcProfile}" ItemsSource="{Binding RefreshOptions}" SelectedItem="{Binding Refresh}" />
+                    <ComboBox Grid.Row="3" Grid.Column="3" DataContext="{Binding BatteryProfile}" ItemsSource="{Binding RefreshOptions}" SelectedItem="{Binding Refresh}" />
+                </Grid>
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Text="GPU switching only moves between Eco and Standard; Ultimate needs a restart, so it's never changed automatically. Close games and apps using the dedicated GPU before unplugging if you use Eco on battery." />
+            </StackPanel>
+        </Border>
+
+        <!-- Slash lid lighting -->
+        <Border Style="{StaticResource Card}" Visibility="{Binding SlashAvailable, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE781;" Title="Slash lighting" Subtitle="The LED bar on the lid.">
+                    <CheckBox Content="On" IsChecked="{Binding SlashOn}" />
+                </c:CardHeader>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Effect" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding SlashEffects}" SelectedItem="{Binding SelectedSlashEffect}" Width="160" MaxDropDownHeight="400" />
+                </StackPanel>
+                <c:SliderRow Label="Brightness" Minimum="1" Maximum="3" Format="{}{0:0}" Value="{Binding SlashBrightness}" />
+                <c:SliderRow Label="Speed (higher = slower)" Minimum="0" Maximum="5" Format="{}{0:0}" Value="{Binding SlashInterval}" />
+                <CheckBox Content="Light up on battery" IsChecked="{Binding SlashOnBattery}" Margin="0,8,0,0" />
+                <CheckBox Content="Light up with the lid closed" IsChecked="{Binding SlashOnLidClosed}" Margin="0,6,0,0" />
+                <Button Content="Apply Slash lighting" Style="{StaticResource AccentButton}" Command="{Binding ApplySlashCommand}"
+                        HorizontalAlignment="Left" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
 
@@ -128,6 +249,23 @@
             <StackPanel>
                 <c:CardHeader Glyph="&#xE765;" Title="Keyboard backlight" />
                 <c:SliderRow Label="Brightness" Minimum="0" Maximum="3" Format="{}{0:0}" Value="{Binding KeyboardBrightness}" />
+                <WrapPanel Margin="0,8,0,0">
+                    <CheckBox Content="Fn-lock (F1–F12 without Fn)" IsChecked="{Binding FnLock}" VerticalAlignment="Center" Margin="0,0,16,6"
+                              Visibility="{Binding SupportsFnLock, Converter={StaticResource Visible}}" />
+                    <Button Content="Touchpad on / off" Command="{Binding ToggleTouchpadCommand}" Margin="0,0,8,6" />
+                    <Button Content="Camera on / off" Command="{Binding ToggleCameraCommand}" Margin="0,0,8,6" />
+                </WrapPanel>
+                <WrapPanel DataContext="{Binding Automation}" Margin="0,8,0,0"
+                           Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+                    <StackPanel Margin="0,0,16,6">
+                        <TextBlock Text="Turn off when idle, plugged in" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding TimeoutOptions}" SelectedItem="{Binding BacklightTimeoutAc}" Width="160" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,16,6">
+                        <TextBlock Text="Turn off when idle, on battery" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding TimeoutOptions}" SelectedItem="{Binding BacklightTimeoutBattery}" Width="160" />
+                    </StackPanel>
+                </WrapPanel>
                 <WrapPanel Visibility="{Binding AuraAvailable, Converter={StaticResource Visible}}" Margin="0,8,0,0">
                     <StackPanel Margin="0,0,16,10">
                         <TextBlock Text="Effect" Style="{StaticResource Label}" Margin="0,0,0,4" />
@@ -148,6 +286,62 @@
                 </WrapPanel>
                 <Button Content="Apply keyboard" Style="{StaticResource AccentButton}" Command="{Binding ApplyKeyboardCommand}"
                         HorizontalAlignment="Left" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Danger zone -->
+        <Border Style="{StaticResource Card}" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1.5">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE7BA;" Title="Danger zone"
+                              Subtitle="Settings that can freeze, crash or overheat the laptop if set wrong. Change one thing at a time and test before going further." />
+                <CheckBox IsChecked="{Binding DangerZoneUnlocked}">
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" FontWeight="SemiBold"
+                               Text="I understand these can make my laptop unstable, and that I use them at my own risk." />
+                </CheckBox>
+
+                <StackPanel Visibility="{Binding DangerZoneUnlocked, Converter={StaticResource Visible}}" Margin="0,8,0,0">
+                    <!-- CPU undervolt -->
+                    <TextBlock Text="CPU undervolt (Ryzen Curve Optimizer)" FontWeight="SemiBold" Margin="0,8,0,4" />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="A negative offset lowers CPU voltage: cooler and quieter at the same speed, until it's too far and the PC freezes or reboots. Start around -10 and go down in steps of 5." />
+                    <TextBlock Text="{Binding RyzenStatus}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <WrapPanel Margin="0,0,0,8">
+                        <Button Content="Install the PawnIO driver" Command="{Binding InstallPawnIoCommand}" Margin="0,0,8,4"
+                                Visibility="{Binding PawnIoMissing, Converter={StaticResource Visible}}" />
+                        <Button Content="Restart AiO as administrator" Command="{Binding RestartAsAdminCommand}" Margin="0,0,8,4"
+                                Visibility="{Binding NeedsAdmin, Converter={StaticResource Visible}}" />
+                    </WrapPanel>
+                    <c:SliderRow Label="Curve Optimizer (all cores)" Minimum="-40" Maximum="0" Format="{}{0:0}" Value="{Binding CurveOffset}" />
+                    <CheckBox Content="Limit CPU temperature" IsChecked="{Binding UseTempLimit}" Margin="0,8,0,0" />
+                    <c:SliderRow Label="CPU temperature limit" Minimum="70" Maximum="100" Format="{}{0:0} °C" Value="{Binding TempLimit}"
+                                 Visibility="{Binding UseTempLimit, Converter={StaticResource Visible}}" />
+                    <CheckBox Content="Re-apply at start-up and after sleep" IsChecked="{Binding RyzenApplyAutomatically}" Margin="0,8,0,0" />
+                    <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,8"
+                               Text="Leave this off until a setting has survived a few hours of normal use. If AiO starts after a crash that happened within two minutes of applying, it skips the undervolt and turns this off. A restart always clears the undervolt." />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Apply undervolt" Style="{StaticResource AccentButton}" Command="{Binding ApplyRyzenCommand}" Margin="0,0,8,0" />
+                        <Button Content="Reset to stock" Command="{Binding ResetRyzenCommand}" />
+                    </StackPanel>
+
+                <StackPanel Visibility="{Binding SupportsPowerLimits, Converter={StaticResource Visible}}" Margin="0,16,0,0">
+                    <TextBlock Text="CPU and GPU power limits" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Editing" Style="{StaticResource Label}" />
+                        <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding EditingMode}" Width="140" />
+                    </StackPanel>
+                    <CheckBox Content="Use custom power limits in this mode" IsChecked="{Binding CustomPowerLimits}" />
+                    <c:SliderRow Label="CPU sustained (SPL)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SustainedWatts}" />
+                    <c:SliderRow Label="CPU slow boost (sPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SlowWatts}" />
+                    <c:SliderRow Label="CPU fast boost (fPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding FastWatts}" />
+                    <StackPanel Visibility="{Binding SupportsGpuPowerTuning, Converter={StaticResource Visible}}">
+                        <c:SliderRow Label="GPU dynamic boost" Minimum="5" Maximum="25" Format="{}{0:0} W" Value="{Binding GpuDynamicBoost}" />
+                        <c:SliderRow Label="GPU temp target" Minimum="75" Maximum="87" Format="{}{0:0} °C" Value="{Binding GpuTempTarget}" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Warning}" Margin="0,6,0,10"
+                               Text="Limits above what your laptop's cooling can handle cause throttling, not extra speed. The firmware clamps out-of-range values." />
+                    <Button Content="Apply power limits" Style="{StaticResource AccentButton}" Command="{Binding ApplyPowerCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+                </StackPanel>
             </StackPanel>
         </Border>
     </StackPanel>
