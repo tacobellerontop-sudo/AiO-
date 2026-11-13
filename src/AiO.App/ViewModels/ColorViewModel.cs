@@ -170,7 +170,90 @@ public sealed class ColorViewModel : ObservableObject
         UnlockRangeCommand = new RelayCommand(UnlockRange);
         ApplyInputCommand = new AsyncCommand(ApplyInputAsync);
         ReloadCommand = new RelayCommand(Reload);
+        CopyToAllCommand = new RelayCommand(CopyToAll);
+        NightSchedule.Instance.Changed += () => OnPropertyChanged(nameof(NightStatus));
         Reload();
+    }
+
+    // ---- Copy to all ----------------------------------------------------------
+
+    public ICommand CopyToAllCommand { get; }
+
+    /// <summary>Gives every display the software colour of the selected one.</summary>
+    private void CopyToAll()
+    {
+        var value = _gamma;
+        var shown = NightSchedule.Instance.IsActive ? NightSchedule.Warm(value, Night.Temperature) : value;
+        int count = 0;
+        foreach (var d in Displays)
+        {
+            var all = _services.Settings.Current.Displays;
+            if (!all.TryGetValue(d.DeviceName, out var saved)) all[d.DeviceName] = saved = new DisplayColorSettings();
+            saved.Gamma = value;
+            saved.Preset = SavedForSelected?.Preset;
+            if (GammaController.Apply(d.DeviceName, shown)) count++;
+        }
+        _services.SaveSettings();
+        _services.Report($"Software colour copied to {count} display{(count == 1 ? "" : "s")}.");
+    }
+
+    // ---- Night schedule ---------------------------------------------------------
+
+    private NightScheduleSettings Night => _services.Settings.Current.Night;
+
+    /// <summary>Every half hour, as "21:30".</summary>
+    public IReadOnlyList<string> Times { get; } =
+        Enumerable.Range(0, 48).Select(i => $"{i / 2:00}:{(i % 2) * 30:00}").ToList();
+
+    private static string ToTime(int minutes) => $"{minutes / 60 % 24:00}:{minutes % 60:00}";
+
+    private static int FromTime(string? text) =>
+        TimeSpan.TryParse(text, out var t) ? (int)t.TotalMinutes : 0;
+
+    public bool NightEnabled
+    {
+        get => Night.Enabled;
+        set { Night.Enabled = value; NightChanged(); }
+    }
+
+    public string NightStart
+    {
+        get => ToTime(Night.StartMinutes);
+        set { Night.StartMinutes = FromTime(value); NightChanged(); }
+    }
+
+    public string NightEnd
+    {
+        get => ToTime(Night.EndMinutes);
+        set { Night.EndMinutes = FromTime(value); NightChanged(); }
+    }
+
+    public double NightTemperature
+    {
+        get => Night.Temperature;
+        set
+        {
+            Night.Temperature = (int)value;
+            OnPropertyChanged();
+            _nightDebounce.Run(() => NightChanged(null));
+        }
+    }
+
+    private readonly Debouncer _nightDebounce = new(TimeSpan.FromMilliseconds(150));
+
+    public string NightStatus => !Night.Enabled
+        ? "Off. Turn it on to warm all screens in the evening."
+        : NightSchedule.Instance.IsActive
+            ? $"On now, until {NightEnd}."
+            : $"Starts at {NightStart}.";
+
+    private void NightChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+    {
+        _services.SaveSettings();
+        if (name is not null) OnPropertyChanged(name);
+        NightSchedule.Instance.Update();
+        // Update() only re-applies while night is or was active: preview a temperature change now.
+        OnPropertyChanged(nameof(NightStatus));
     }
 
     private void Reload()
@@ -228,7 +311,8 @@ public sealed class ColorViewModel : ObservableObject
             var saved = SavedForSelected!;
             _gammaDebounce.Run(() =>
             {
-                if (!GammaController.Apply(device, value))
+                var shown = NightSchedule.Instance.IsActive ? NightSchedule.Warm(value, Night.Temperature) : value;
+                if (!GammaController.Apply(device, shown))
                     _services.Report("Windows refused this colour change. Unlock the full gamma range below, or use smaller adjustments.");
                 saved.Gamma = value;
                 _services.SaveSettings();

@@ -136,3 +136,19 @@ public class DisplayAndColorTests
         }
     }
 }
+
+public class NightScheduleTests
+{
+    [Theory]
+    [InlineData(21 * 60, 7 * 60, 23 * 60, true)]
+    [InlineData(21 * 60, 7 * 60, 3 * 60, true)]
+    [InlineData(21 * 60, 7 * 60, 12 * 60, false)]
+    [InlineData(21 * 60, 7 * 60, 7 * 60, false)]
+    [InlineData(13 * 60, 15 * 60, 14 * 60, true)]
+    [InlineData(13 * 60, 15 * 60, 16 * 60, false)]
+    public void Night_window_wraps_past_midnight(int start, int end, int now, bool expected)
+    {
+        var night = new AiO.Core.Settings.NightScheduleSettings { StartMinutes = start, EndMinutes = end };
+        Assert.Equal(expected, night.IsNight(now));
+    }
+}

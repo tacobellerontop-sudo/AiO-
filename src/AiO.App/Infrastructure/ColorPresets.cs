@@ -24,7 +24,10 @@ public static class ColorPresets
         var all = services.Settings.Current.Displays;
         if (!all.TryGetValue(deviceName, out var saved)) all[deviceName] = saved = new DisplayColorSettings();
 
-        if (!GammaController.Apply(deviceName, preset.Gamma))
+        var shown = NightSchedule.Instance.IsActive
+            ? NightSchedule.Warm(preset.Gamma, services.Settings.Current.Night.Temperature)
+            : preset.Gamma;
+        if (!GammaController.Apply(deviceName, shown))
             services.Report($"Windows refused part of \"{preset.Name}\" (the software colour). Unlock the full gamma range on the Colour page.");
         saved.Gamma = preset.Gamma;
 
