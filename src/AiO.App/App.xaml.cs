@@ -49,6 +49,7 @@ public partial class App : Application
 
         _viewModel = new MainViewModel();
         _viewModel.Actions.OpenAiORequested = ShowMainWindow;
+        RazerBackground.Start();
         _tray = new TrayIcon(services.Asus is not null, () => ColorPresets.All.Select(p => p.Name));
         _tray.ColorPresetRequested += name =>
         {
