@@ -21,9 +21,9 @@ settings at start-up.
 | **Mouse** | Raw mouse acceleration (linear, classic, natural, synchronous, power, jump) with a live curve editor, applied to every app and raw-input game; Windows pointer speed and Enhance Pointer Precision | [RawAccel](https://github.com/a1xd/rawaccel)'s signed filter driver ships inside AiO; AiO provides the editor, settings and start-up |
 | **Keyboard** | Remap any key, remap shortcuts, launch apps, type text, cycle ASUS modes; optionally only inside specific apps. Works with any keyboard | Low-level keyboard hook, like PowerToys Keyboard Manager |
 | **Razer** | DPI, DPI stages, polling rate up to 8000 Hz, lighting per detected zone, brightness, battery, sleep timer and low-battery warning, **without Synapse** | Razer HID protocol as documented by [OpenRazer](https://github.com/openrazer/openrazer) |
-| **ASUS** | Silent / Balanced / Turbo, Eco / Standard / Ultimate GPU modes, live temperatures and fan RPM, custom fan curves and power limits per mode, battery charge limit, panel overdrive, keyboard backlight, **M1–M4 / ROG key and Fn + F4 / F5 hotkeys** with your own actions (mic mute, performance mode, lighting, launch an app, send a shortcut...), automatic mode / GPU / refresh-rate switching on plug-in and unplug, 60 Hz / max refresh toggle, keyboard backlight idle timeout, on-screen popups, Fn-lock / touchpad / camera toggles, Slash lid lighting (Zephyrus G14 2024 / G16), and a **Danger zone** with power limits and Ryzen undervolting (Curve Optimizer, temperature limit) | ASUS ATKACPI driver and Aura HID, as documented by [G-Helper](https://github.com/seerge/g-helper) |
+| **Laptop settings** (ASUS) | Silent / Balanced / Turbo, Eco / Standard / Ultimate GPU modes, live temperatures and fan RPM, custom fan curves and power limits per mode, battery charge limit, panel overdrive, keyboard backlight, **M1–M4 / ROG key and Fn + F4 / F5 hotkeys** with your own actions (mic mute, performance mode, lighting, launch an app, send a shortcut...), automatic mode / GPU / refresh-rate switching on plug-in and unplug, 60 Hz / max refresh toggle, keyboard backlight idle timeout, on-screen popups, Fn-lock / touchpad / camera toggles, Slash lid lighting (Zephyrus G14 2024 / G16), and a **Danger zone** with power limits and Ryzen undervolting (Curve Optimizer, temperature limit) | ASUS ATKACPI driver and Aura HID, as documented by [G-Helper](https://github.com/seerge/g-helper) |
 
-The ASUS page only appears on ASUS laptops that have the ASUS System Control Interface driver installed.
+The Laptop settings page (ASUS controls) only appears on ASUS laptops that have the ASUS System Control Interface driver installed.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ The ASUS page only appears on ASUS laptops that have the ASUS System Control Int
 - **ASUS M-keys:** *ASUS → M-keys and hotkeys* shows the last special key AiO received, so you can tell
   whether a key reaches AiO at all. Keys AiO doesn't know by name can still be given an action from there.
   M1/M2 are ordinary volume keys to Windows; rebinding them takes over every volume key.
-- **Danger zone (ASUS page):** power limits and Ryzen undervolting can crash or overheat the laptop if set
+- **Danger zone (Laptop settings page):** power limits and Ryzen undervolting can crash or overheat the laptop if set
   too far. Undervolting needs the [PawnIO](https://pawnio.eu) driver and AiO running as administrator. It is
   never re-applied automatically unless you turn that on, and AiO skips it after a crash right after applying.
 - **Keyboard remaps** can't reach apps running as administrator unless AiO is elevated too.

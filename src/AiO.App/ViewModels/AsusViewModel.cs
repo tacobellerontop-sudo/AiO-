@@ -25,10 +25,10 @@ public sealed class AsusViewModel : ObservableObject
 
     private AsusSettings Saved => _services.Settings.Current.Asus;
 
-    /// <summary>M-key and Fn hotkey bindings (shown on the ASUS page).</summary>
+    /// <summary>M-key and Fn hotkey bindings (shown on the Laptop settings page).</summary>
     public AsusHotkeysViewModel? Hotkeys { get; init; }
 
-    /// <summary>Plug-in / battery switching, refresh rate and backlight timeout (shown on the ASUS page).</summary>
+    /// <summary>Plug-in / battery switching, refresh rate and backlight timeout (shown on the Laptop settings page).</summary>
     public AsusAutomationViewModel? Automation { get; init; }
 
     public AsusViewModel(AsusLaptop asus)

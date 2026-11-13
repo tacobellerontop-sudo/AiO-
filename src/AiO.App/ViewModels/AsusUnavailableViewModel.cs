@@ -5,7 +5,7 @@ using AiO.Core.Asus;
 
 namespace AiO.App.ViewModels;
 
-/// <summary>Shown on the ASUS page when the G-Helper controls can't be loaded, explaining why.</summary>
+/// <summary>Shown on the Laptop settings page when the G-Helper controls can't be loaded, explaining why.</summary>
 public sealed class AsusUnavailableViewModel : ObservableObject
 {
     private readonly AppServices _services = AppServices.Instance;

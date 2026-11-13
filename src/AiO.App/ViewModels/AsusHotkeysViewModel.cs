@@ -223,7 +223,7 @@ public sealed class AsusHotkeysViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Called by the ASUS page with the next key press while a row is recording.</summary>
+    /// <summary>Called by the Laptop settings page with the next key press while a row is recording.</summary>
     public void Record(int vk, KeyModifiers modifiers)
     {
         if (Recording is not { } row) return;

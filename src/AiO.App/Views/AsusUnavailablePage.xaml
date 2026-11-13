@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:AiO.App.Controls">
     <StackPanel>
-        <c:PageHeader Glyph="&#xE7F8;" Title="ASUS · G-Helper" Subtitle="G-Helper-style controls for ASUS laptops, without Armoury Crate." />
+        <c:PageHeader Glyph="&#xE7F8;" Title="Laptop settings" Subtitle="G-Helper-style controls for ASUS laptops, without Armoury Crate." />
 
         <Border Style="{StaticResource Card}">
             <StackPanel>

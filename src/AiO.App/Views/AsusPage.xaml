@@ -4,7 +4,7 @@
              xmlns:c="clr-namespace:AiO.App.Controls"
              Focusable="True" PreviewKeyDown="OnPreviewKeyDown">
     <StackPanel>
-        <c:PageHeader Glyph="&#xE7F8;" Title="ASUS · G-Helper"
+        <c:PageHeader Glyph="&#xE7F8;" Title="Laptop settings"
                       Subtitle="G-Helper-style control of ROG, TUF and Vivobook laptops through the ASUS ACPI driver, without Armoury Crate. Leave AiO running in the tray: the firmware forgets fan curves and charge limits on reboot, and AiO re-applies them." />
 
         <!-- Live sensors -->
