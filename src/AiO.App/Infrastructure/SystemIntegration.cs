@@ -57,6 +57,20 @@ public static class SystemIntegration
         }
     }
 
+    /// <summary>Starts a fresh AiO that waits for this one to exit. The caller must then exit.</summary>
+    public static bool RestartApp()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ExecutablePath, RestartedArgument) { UseShellExecute = true });
+            return true;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+    }
+
     public static void OpenFolder(string path) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
 
