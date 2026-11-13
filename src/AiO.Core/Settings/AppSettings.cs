@@ -99,6 +99,8 @@ public sealed class AsusSettings
     public bool SyncWindowsPowerMode { get; set; } = true;
     public int BatteryLimit { get; set; } = 100;
     public bool? PanelOverdrive { get; set; }
+    /// <summary>Hardware Fn-lock; null until the user sets it.</summary>
+    public bool? FnLock { get; set; }
     public Dictionary<AsusPerformanceMode, AsusModeProfile> Profiles { get; set; } = new()
     {
         [AsusPerformanceMode.Silent] = new(),

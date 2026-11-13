@@ -85,6 +85,17 @@ public sealed class ActionRunner(Func<AsusViewModel?> asus)
                     null => "No microphone found",
                 });
                 break;
+            case KeyActionType.ToggleTouchpad:
+                // Windows' own precision-touchpad toggle shortcut.
+                KeyboardHook.SendChord(new KeyChord(KeyModifiers.Ctrl | KeyModifiers.Win, 0x87 /* F24 */));
+                _services.ShowOsd("\uEFA5", "Touchpad toggled");
+                break;
+            case KeyActionType.ToggleFnLock:
+                OnAsus(a => a.ToggleFnLock());
+                break;
+            case KeyActionType.ToggleCamera:
+                OnAsus(a => a.ToggleCamera());
+                break;
             case KeyActionType.LockScreen:
                 LockWorkStation();
                 break;

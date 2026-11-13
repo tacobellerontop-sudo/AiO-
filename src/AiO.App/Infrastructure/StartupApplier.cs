@@ -51,6 +51,7 @@ public static class StartupApplier
         ApplyPerformanceMode(asus, s, s.PerformanceMode);
         if (asus.SupportsBatteryLimit && s.BatteryLimit < 100) asus.SetBatteryLimit(s.BatteryLimit);
         if (s.PanelOverdrive is bool overdrive && asus.SupportsOverdrive) asus.SetOverdrive(overdrive);
+        if (s.FnLock is bool fnLock && asus.SupportsFnLock) asus.SetFnLock(fnLock);
     }
 
     /// <summary>Switches mode, then applies that mode's custom fan curves and power limits.</summary>

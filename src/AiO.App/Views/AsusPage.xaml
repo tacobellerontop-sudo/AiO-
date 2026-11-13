@@ -243,6 +243,12 @@
             <StackPanel>
                 <c:CardHeader Glyph="&#xE765;" Title="Keyboard backlight" />
                 <c:SliderRow Label="Brightness" Minimum="0" Maximum="3" Format="{}{0:0}" Value="{Binding KeyboardBrightness}" />
+                <WrapPanel Margin="0,8,0,0">
+                    <CheckBox Content="Fn-lock (F1–F12 without Fn)" IsChecked="{Binding FnLock}" VerticalAlignment="Center" Margin="0,0,16,6"
+                              Visibility="{Binding SupportsFnLock, Converter={StaticResource Visible}}" />
+                    <Button Content="Touchpad on / off" Command="{Binding ToggleTouchpadCommand}" Margin="0,0,8,6" />
+                    <Button Content="Camera on / off" Command="{Binding ToggleCameraCommand}" Margin="0,0,8,6" />
+                </WrapPanel>
                 <WrapPanel DataContext="{Binding Automation}" Margin="0,8,0,0"
                            Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
                     <StackPanel Margin="0,0,16,6">

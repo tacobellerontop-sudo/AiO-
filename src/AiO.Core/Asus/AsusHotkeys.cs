@@ -21,6 +21,12 @@ public enum AsusHotkey
     FnC,
     /// <summary>Fn + V.</summary>
     FnV,
+    /// <summary>Fn + Esc: Fn-lock.</summary>
+    FnEsc,
+    /// <summary>Fn + F10: touchpad on/off.</summary>
+    FnF10,
+    /// <summary>Camera key (Fn + F10 on some Zenbooks / Vivobooks).</summary>
+    Camera,
 }
 
 /// <summary>
@@ -42,6 +48,9 @@ public static class AsusHotkeyCodes
         174 or 153 or 93 => AsusHotkey.FnF5,
         158 => AsusHotkey.FnC,
         138 => AsusHotkey.FnV,
+        78 => AsusHotkey.FnEsc,
+        107 => AsusHotkey.FnF10,
+        133 => AsusHotkey.Camera,
         _ => null,
     };
 
@@ -62,6 +71,9 @@ public static class AsusHotkeyCodes
         AsusHotkey.FnF5 => "Fn + F5",
         AsusHotkey.FnC => "Fn + C",
         AsusHotkey.FnV => "Fn + V",
+        AsusHotkey.FnEsc => "Fn + Esc",
+        AsusHotkey.FnF10 => "Fn + F10",
+        AsusHotkey.Camera => "Camera key",
         AsusHotkey.M4 => "M4 / ROG key",
         _ => key.ToString(),
     };
@@ -87,6 +99,10 @@ public static class AsusHotkeyCodes
         AsusHotkey.M4 => KeyActionType.OpenAiO,
         AsusHotkey.FnF4 => KeyActionType.NextKeyboardLighting,
         AsusHotkey.FnF5 => KeyActionType.CycleAsusMode,
+        // Without ASUS's service nothing else handles these; with it, it does.
+        AsusHotkey.FnEsc when !asusServiceRunning => KeyActionType.ToggleFnLock,
+        AsusHotkey.FnF10 when !asusServiceRunning => KeyActionType.ToggleTouchpad,
+        AsusHotkey.Camera when !asusServiceRunning => KeyActionType.ToggleCamera,
         _ => null,
     };
 
@@ -95,6 +111,7 @@ public static class AsusHotkeyCodes
         AsusHotkey.M1 => "Volume down (Windows)",
         AsusHotkey.M2 => "Volume up (Windows)",
         AsusHotkey.M3 when asusServiceRunning => "Microphone mute (ASUS service)",
+        AsusHotkey.FnEsc or AsusHotkey.FnF10 or AsusHotkey.Camera when asusServiceRunning => "Handled by the ASUS service",
         _ when DefaultAction(key, asusServiceRunning) is { } action => KeyMapping.DescribeAction(action),
         _ => "Nothing",
     };

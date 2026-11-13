@@ -95,7 +95,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 Hotkeys ??= new AsusHotkeysViewModel(Actions);
                 Automation ??= new AsusAutomationViewModel(() => Asus, () => Hotkeys?.Restart());
-                Asus = new AsusViewModel(asus) { Hotkeys = Hotkeys, Automation = Automation };
+                Asus = new AsusViewModel(asus) { Hotkeys = Hotkeys, Automation = Automation, Runner = Actions.Run };
             }
         }
         catch (Exception ex)

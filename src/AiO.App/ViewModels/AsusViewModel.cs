@@ -299,6 +299,62 @@ public sealed class AsusViewModel : ObservableObject
     public double KeyboardBrightness { get => Saved.KeyboardBrightness; set { Saved.KeyboardBrightness = (int)value; OnPropertyChanged(); } }
     public ICommand ApplyKeyboardCommand { get; }
 
+    // ---- Fn-lock, touchpad, camera -------------------------------------------------
+
+    private bool? _supportsFnLock;
+    public bool SupportsFnLock => _supportsFnLock ??= Probe(() => _asus.SupportsFnLock, false);
+
+    public bool FnLock
+    {
+        get => Saved.FnLock == true;
+        set
+        {
+            try
+            {
+                _asus.SetFnLock(value);
+                Saved.FnLock = value;
+                _services.SaveSettings();
+                _services.ShowOsd("\uE765", value ? "Fn-lock on: F1–F12 are function keys" : "Fn-lock off: F1–F12 are media keys");
+            }
+            catch (Exception ex)
+            {
+                _services.Report($"Fn-lock failed: {ex.Message}");
+            }
+            OnPropertyChanged();
+        }
+    }
+
+    public void ToggleFnLock()
+    {
+        if (!SupportsFnLock) { _services.Report("This laptop has no firmware Fn-lock."); return; }
+        FnLock = !FnLock;
+    }
+
+    public ICommand ToggleTouchpadCommand => new RelayCommand(() =>
+        Runner?.Invoke(new AiO.Core.Keyboard.KeyMapping { Action = AiO.Core.Keyboard.KeyActionType.ToggleTouchpad, Target = null }));
+
+    public ICommand ToggleCameraCommand => new RelayCommand(ToggleCamera);
+
+    /// <summary>Runs a key action (set by the main view model), for buttons that mirror hotkey actions.</summary>
+    public Action<AiO.Core.Keyboard.KeyMapping>? Runner { get; init; }
+
+    public void ToggleCamera()
+    {
+        try
+        {
+            _services.ShowOsd("\uE714", _asus.ToggleCamera() switch
+            {
+                true => "Camera on",
+                false => "Camera off",
+                null => "This laptop doesn't let software switch the camera",
+            });
+        }
+        catch (Exception ex)
+        {
+            _services.Report($"Camera toggle failed: {ex.Message}");
+        }
+    }
+
     /// <summary>Hotkey action: switches to the next lighting effect and applies it.</summary>
     public void NextAuraMode()
     {
