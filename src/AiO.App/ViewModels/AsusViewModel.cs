@@ -299,6 +299,40 @@ public sealed class AsusViewModel : ObservableObject
     public double KeyboardBrightness { get => Saved.KeyboardBrightness; set { Saved.KeyboardBrightness = (int)value; OnPropertyChanged(); } }
     public ICommand ApplyKeyboardCommand { get; }
 
+    // ---- Slash lid lighting --------------------------------------------------------
+
+    public bool SlashAvailable { get; } = AsusSlash.IsSlashModel(SystemInfo.ReadBios().Model);
+    private SlashSettings Slash => Saved.Slash;
+    public IReadOnlyList<SlashEffect> SlashEffects { get; } = Enum.GetValues<SlashEffect>();
+    public bool SlashOn { get => Slash.On; set { Slash.On = value; OnPropertyChanged(); } }
+    public SlashEffect SelectedSlashEffect { get => Slash.Effect; set { Slash.Effect = value; OnPropertyChanged(); } }
+    public double SlashBrightness { get => Slash.Brightness; set { Slash.Brightness = (int)value; OnPropertyChanged(); } }
+    public double SlashInterval { get => Slash.Interval; set { Slash.Interval = (int)value; OnPropertyChanged(); } }
+    public bool SlashOnBattery { get => Slash.OnBattery; set { Slash.OnBattery = value; OnPropertyChanged(); } }
+    public bool SlashOnLidClosed { get => Slash.OnLidClosed; set { Slash.OnLidClosed = value; OnPropertyChanged(); } }
+    public ICommand ApplySlashCommand => new RelayCommand(ApplySlash);
+
+    private void ApplySlash()
+    {
+        try
+        {
+            if (StartupApplier.ApplySlash(Slash))
+            {
+                Slash.Manage = true;
+                _services.SaveSettings();
+                _services.Report(Slash.On ? $"Slash lighting: {Slash.Effect}." : "Slash lighting off.");
+            }
+            else
+            {
+                _services.Report("The Slash lighting didn't accept the command. Close Armoury Crate or G-Helper and try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _services.Report($"Slash lighting failed: {ex.Message}");
+        }
+    }
+
     // ---- Fn-lock, touchpad, camera -------------------------------------------------
 
     private bool? _supportsFnLock;

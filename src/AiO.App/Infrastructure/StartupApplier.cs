@@ -18,6 +18,7 @@ public static class StartupApplier
         Try("colour", () => ApplyColor(services, settings));
         if (services.Asus is { } asus) Try("ASUS", () => ApplyAsus(asus, settings.Asus));
         if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus, services.Asus));
+        if (settings.Asus.Slash.Manage) Try("Slash lighting", () => ApplySlash(settings.Asus.Slash));
         if (settings.Mouse.ReapplyRawAccelOnStartup && RawAccel.PackageFolder is not null)
         {
             // The driver's writer takes about a second; don't hold up start-up for it.
@@ -73,6 +74,9 @@ public static class StartupApplier
                 profile.GpuDynamicBoost, profile.GpuTempTarget));
         }
     }
+
+    public static bool ApplySlash(SlashSettings s) =>
+        AsusSlash.Apply(s.On, s.Effect, s.Brightness, s.Interval, s.OnBattery, s.OnLidClosed);
 
     /// <summary>Applies brightness and effect over every channel the laptop has; returns what was reached.</summary>
     public static AuraResult ApplyAura(AsusSettings s, AsusLaptop? asus)

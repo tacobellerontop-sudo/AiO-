@@ -84,6 +84,19 @@ public sealed class AsusModeProfile
     public int GpuTempTarget { get; set; } = 87;
 }
 
+/// <summary>Slash lid lighting (Zephyrus G14 2024+, G16).</summary>
+public sealed class SlashSettings
+{
+    /// <summary>Set once the user applies Slash settings in AiO; until then AiO leaves the bar alone.</summary>
+    public bool Manage { get; set; }
+    public bool On { get; set; } = true;
+    public SlashEffect Effect { get; set; } = SlashEffect.Flow;
+    public int Brightness { get; set; } = 2;
+    public int Interval { get; set; } = 1;
+    public bool OnBattery { get; set; } = true;
+    public bool OnLidClosed { get; set; }
+}
+
 /// <summary>What to switch to on one power source. Null fields are left alone.</summary>
 public sealed class AsusPowerProfile
 {
@@ -124,6 +137,8 @@ public sealed class AsusSettings
     /// <summary>Seconds without input before the keyboard backlight turns off (0 = never).</summary>
     public int BacklightTimeoutAc { get; set; }
     public int BacklightTimeoutBattery { get; set; }
+
+    public SlashSettings Slash { get; set; } = new();
 
     /// <summary>Listen for the M-keys and Fn hotkeys.</summary>
     public bool HotkeysEnabled { get; set; } = true;

@@ -238,6 +238,25 @@
             </StackPanel>
         </Border>
 
+        <!-- Slash lid lighting -->
+        <Border Style="{StaticResource Card}" Visibility="{Binding SlashAvailable, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE781;" Title="Slash lighting" Subtitle="The LED bar on the lid.">
+                    <CheckBox Content="On" IsChecked="{Binding SlashOn}" />
+                </c:CardHeader>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Effect" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding SlashEffects}" SelectedItem="{Binding SelectedSlashEffect}" Width="160" MaxDropDownHeight="400" />
+                </StackPanel>
+                <c:SliderRow Label="Brightness" Minimum="1" Maximum="3" Format="{}{0:0}" Value="{Binding SlashBrightness}" />
+                <c:SliderRow Label="Speed (higher = slower)" Minimum="0" Maximum="5" Format="{}{0:0}" Value="{Binding SlashInterval}" />
+                <CheckBox Content="Light up on battery" IsChecked="{Binding SlashOnBattery}" Margin="0,8,0,0" />
+                <CheckBox Content="Light up with the lid closed" IsChecked="{Binding SlashOnLidClosed}" Margin="0,6,0,0" />
+                <Button Content="Apply Slash lighting" Style="{StaticResource AccentButton}" Command="{Binding ApplySlashCommand}"
+                        HorizontalAlignment="Left" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
+
         <!-- Keyboard -->
         <Border Style="{StaticResource Card}">
             <StackPanel>
