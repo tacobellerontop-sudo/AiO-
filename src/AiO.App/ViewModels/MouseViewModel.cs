@@ -74,6 +74,50 @@ public sealed class MouseViewModel : ObservableObject
 
     public ICommand RecommendedWindowsCommand { get; }
 
+    // ---- Wheel, buttons and pointer extras ------------------------------------------
+
+    private readonly Debouncer _wheelDebounce = new(TimeSpan.FromMilliseconds(150));
+    private double _scrollLines = Try(WindowsMouse.GetScrollLines, 3);
+    private double _scrollChars = Try(WindowsMouse.GetScrollChars, 3);
+    private double _doubleClick = Try(WindowsMouse.GetDoubleClickTime, 500);
+    private bool _swapped = Try(WindowsMouse.GetButtonsSwapped, false);
+    private bool _sonar = Try(WindowsMouse.GetSonar, false);
+
+    public double ScrollLines
+    {
+        get => _scrollLines;
+        set { if (Set(ref _scrollLines, value)) _wheelDebounce.Run(() => WindowsMouse.SetScrollLines((int)value)); }
+    }
+
+    public double ScrollChars
+    {
+        get => _scrollChars;
+        set { if (Set(ref _scrollChars, value)) _wheelDebounce.Run(() => WindowsMouse.SetScrollChars((int)value)); }
+    }
+
+    public double DoubleClickTime
+    {
+        get => _doubleClick;
+        set { if (Set(ref _doubleClick, value)) _wheelDebounce.Run(() => WindowsMouse.SetDoubleClickTime((int)value)); }
+    }
+
+    public bool ButtonsSwapped
+    {
+        get => _swapped;
+        set
+        {
+            if (!Set(ref _swapped, value)) return;
+            WindowsMouse.SetButtonsSwapped(value);
+            _services.Report(value ? "Right button is now the primary button." : "Left button is the primary button again.");
+        }
+    }
+
+    public bool PointerSonar
+    {
+        get => _sonar;
+        set { if (Set(ref _sonar, value)) WindowsMouse.SetSonar(value); }
+    }
+
     // ---- Driver -------------------------------------------------------------------
 
     private Core.Settings.MouseSettings Saved => _services.Settings.Current.Mouse;
