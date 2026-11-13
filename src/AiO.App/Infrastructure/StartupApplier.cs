@@ -18,6 +18,9 @@ public static class StartupApplier
         Try("colour", () => ApplyColor(services, settings));
         if (services.Asus is { } asus) Try("ASUS", () => ApplyAsus(asus, settings.Asus));
         if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus, services.Asus));
+        if (settings.Asus.Slash.Manage) Try("Slash lighting", () => ApplySlash(settings.Asus.Slash));
+        // Off the UI thread: opening the driver and the SMU mailbox take a moment.
+        Task.Run(() => Try("CPU undervolt", () => RyzenTuning.ApplyAtStartup(services)));
         if (settings.Mouse.ReapplyRawAccelOnStartup && RawAccel.PackageFolder is not null)
         {
             // The driver's writer takes about a second; don't hold up start-up for it.
@@ -51,6 +54,7 @@ public static class StartupApplier
         ApplyPerformanceMode(asus, s, s.PerformanceMode);
         if (asus.SupportsBatteryLimit && s.BatteryLimit < 100) asus.SetBatteryLimit(s.BatteryLimit);
         if (s.PanelOverdrive is bool overdrive && asus.SupportsOverdrive) asus.SetOverdrive(overdrive);
+        if (s.FnLock is bool fnLock && asus.SupportsFnLock) asus.SetFnLock(fnLock);
     }
 
     /// <summary>Switches mode, then applies that mode's custom fan curves and power limits.</summary>
@@ -72,6 +76,9 @@ public static class StartupApplier
                 profile.GpuDynamicBoost, profile.GpuTempTarget));
         }
     }
+
+    public static bool ApplySlash(SlashSettings s) =>
+        AsusSlash.Apply(s.On, s.Effect, s.Brightness, s.Interval, s.OnBattery, s.OnLidClosed);
 
     /// <summary>Applies brightness and effect over every channel the laptop has; returns what was reached.</summary>
     public static AuraResult ApplyAura(AsusSettings s, AsusLaptop? asus)

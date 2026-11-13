@@ -197,6 +197,32 @@ public sealed class AsusLaptop : IDisposable
             _acpi.Set(AsusDeviceIds.GpuTempTarget, Math.Clamp(temp, 75, 87));
     }
 
+    // ---- Fn-lock and camera ------------------------------------------------------
+
+    /// <summary>Firmware Fn-lock (F1–F12 act as F-keys without Fn).</summary>
+    public bool SupportsFnLock => _acpi.IsSupported(AsusDeviceIds.FnLock);
+
+    /// <summary>Sets Fn-lock through ACPI and the keyboard's HID channel (each model listens to one of them).</summary>
+    public void SetFnLock(bool locked)
+    {
+        _acpi.Set(AsusDeviceIds.FnLock, locked ? 1 : 0);
+        AsusAura.SendInputCommand(AsusAura.BuildFnLockMessage(locked));
+    }
+
+    /// <summary>
+    /// Toggles the camera on models with an ACPI camera switch. Returns true when the camera is now
+    /// on, false when off, null when this laptop doesn't let software switch it.
+    /// </summary>
+    public bool? ToggleCamera()
+    {
+        int raw = _acpi.Get(AsusDeviceIds.CameraShutter);
+        if (raw < 0) return null;
+        var plan = AsusCamera.PlanToggle(raw);
+        if (plan is null) return null;
+        _acpi.Set(AsusDeviceIds.CameraShutter, plan.Value.Write);
+        return plan.Value.CameraOnAfter;
+    }
+
     // ---- Keyboard ------------------------------------------------------------
 
     /// <summary>The raw driver, for the TUF/Vivobook keyboard lighting channel in <see cref="AsusAura"/>.</summary>

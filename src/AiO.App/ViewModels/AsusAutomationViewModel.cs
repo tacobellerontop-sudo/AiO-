@@ -110,6 +110,9 @@ public sealed class AsusAutomationViewModel : ObservableObject, IDisposable
         }
         _backlightDimmed = false;
         _afterResume?.Invoke();
+        // The CPU forgets Curve Optimizer and temperature limits over sleep.
+        if (Saved.DangerZoneUnlocked && Saved.Ryzen.ApplyAutomatically && (Saved.Ryzen.CurveOffset != 0 || Saved.Ryzen.TempLimit is not null))
+            Task.Run(() => _services.Report(RyzenTuning.Apply(Saved.Ryzen)));
         if (Saved.AutoSwitch) ApplyProfile(force: true, showOsd: false);
     }
 
