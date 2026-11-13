@@ -167,3 +167,24 @@ public class AsusDetectionTests
         Assert.True(AsusDetection.Describe("ASUSTeK COMPUTER INC.", "", true, 0).DriverOpened);
     }
 }
+
+public class BatteryReportTests
+{
+    [Fact]
+    public void Health_is_full_charge_over_design()
+    {
+        var r = new AiO.Core.Power.BatteryReport(76000, 68400, 30000, 0, 15000, 120);
+        Assert.Equal(90.0, r.HealthPercent!.Value, 3);
+        Assert.Contains("Health 90%", r.Describe());
+        Assert.Contains("using 15.0 W", r.Describe());
+        Assert.Contains("120 charge cycles", r.Describe());
+    }
+
+    [Fact]
+    public void Missing_data_says_so()
+    {
+        var r = new AiO.Core.Power.BatteryReport(null, null, null, null, null, null);
+        Assert.Null(r.HealthPercent);
+        Assert.Equal("The battery doesn't report its health.", r.Describe());
+    }
+}
