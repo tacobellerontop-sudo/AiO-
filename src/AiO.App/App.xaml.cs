@@ -45,6 +45,7 @@ public partial class App : Application
         services.Settings.Load();
         services.OsdRequested += (glyph, text) => Dispatcher.BeginInvoke(() => (_osd ??= new OsdWindow()).Show(glyph, text));
         if (services.Settings.Current.General.ApplyOnStartup) StartupApplier.ApplyAll(services);
+        RazerBackground.Start();
 
         _viewModel = new MainViewModel();
         _viewModel.Actions.OpenAiORequested = ShowMainWindow;

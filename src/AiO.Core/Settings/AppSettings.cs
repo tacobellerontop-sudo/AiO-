@@ -15,6 +15,7 @@ public sealed class AppSettings
     public Dictionary<string, DisplayColorSettings> Displays { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public AsusSettings Asus { get; set; } = new();
     public Dictionary<string, RazerDeviceSettings> Razer { get; set; } = new();
+    public RazerOptions RazerOptions { get; set; } = new();
     public MouseSettings Mouse { get; set; } = new();
     public KeyboardSettings Keyboard { get; set; } = new();
     /// <summary>User-made colour presets (built-in ones live in <see cref="ColorPreset.BuiltIn"/>).</summary>
@@ -185,6 +186,17 @@ public sealed class RazerDeviceSettings
     public string Color { get; set; } = "#00FF00";
     public string Color2 { get; set; } = "#0000FF";
     public int Brightness { get; set; } = 255;
+    /// <summary>Set once lighting has been applied from AiO, so start-up restore leaves untouched lighting alone.</summary>
+    public bool LightingSet { get; set; }
+    /// <summary>Send the saved DPI, polling rate and lighting when AiO starts (useful for devices without onboard memory).</summary>
+    public bool RestoreOnStartup { get; set; }
+}
+
+public sealed class RazerOptions
+{
+    /// <summary>Warn when a wireless Razer device's battery runs low.</summary>
+    public bool BatteryAlerts { get; set; } = true;
+    public int AlertPercent { get; set; } = 15;
 }
 
 /// <summary>Loads and saves settings as JSON in %APPDATA%\AiO\settings.json.</summary>

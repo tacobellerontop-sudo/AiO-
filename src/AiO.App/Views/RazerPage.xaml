@@ -58,6 +58,8 @@
                                         <TextBlock Text="Active stage" Style="{StaticResource Label}" Width="150" />
                                         <ComboBox ItemsSource="{Binding StageNumbers}" SelectedItem="{Binding ActiveStage}" Width="80" MinWidth="80" />
                                         <Button Content="Save stages" Style="{StaticResource AccentButton}" Command="{Binding ApplyStagesCommand}" Margin="12,0,0,0" />
+                                        <Button Content="&#xE70E;" FontFamily="{StaticResource IconFont}" Command="{Binding StageUpCommand}" ToolTip="Next stage now" Margin="12,0,0,0" />
+                                        <Button Content="&#xE70D;" FontFamily="{StaticResource IconFont}" Command="{Binding StageDownCommand}" ToolTip="Previous stage now" Margin="6,0,0,0" />
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
@@ -96,10 +98,27 @@
                             </WrapPanel>
                             <CheckBox Content="Apply to all zones" IsChecked="{Binding AllZones}" Margin="0,0,0,6" />
                             <c:SliderRow Label="Brightness" Minimum="0" Maximum="255" Value="{Binding Brightness}" />
+
+                            <!-- Extras -->
+                            <WrapPanel Margin="0,12,0,0">
+                                <Button Content="Lights off" Command="{Binding LightsOffCommand}" Margin="0,0,8,8" />
+                                <Button Content="Check battery" Command="{Binding RefreshBatteryCommand}" Margin="0,0,8,8" />
+                            </WrapPanel>
+                            <CheckBox Content="Restore the saved DPI, polling rate and lighting when AiO starts" IsChecked="{Binding RestoreOnStartup}"
+                                      ToolTip="For devices that forget their settings when unplugged or that have no onboard memory" />
                         </StackPanel>
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE850;" Title="Battery alerts" Subtitle="AiO checks wireless Razer devices every few minutes, even with this page closed." />
+                <CheckBox Content="Warn me when a wireless device's battery runs low" IsChecked="{Binding BatteryAlerts}" Margin="0,0,0,8" />
+                <c:SliderRow Label="Warn at" Minimum="5" Maximum="50" Step="5" Format="{}{0:0}%" Value="{Binding AlertPercent}"
+                             Visibility="{Binding BatteryAlerts, Converter={StaticResource Visible}}" />
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>
