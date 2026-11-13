@@ -28,6 +28,9 @@ public sealed class AsusViewModel : ObservableObject
     /// <summary>M-key and Fn hotkey bindings (shown on the ASUS page).</summary>
     public AsusHotkeysViewModel? Hotkeys { get; init; }
 
+    /// <summary>Plug-in / battery switching, refresh rate and backlight timeout (shown on the ASUS page).</summary>
+    public AsusAutomationViewModel? Automation { get; init; }
+
     public AsusViewModel(AsusLaptop asus)
     {
         _asus = asus;
@@ -50,6 +53,7 @@ public sealed class AsusViewModel : ObservableObject
         ApplyKeyboardCommand = new RelayCommand(ApplyKeyboard);
 
         LoadEditingProfile();
+        if (Saved.DangerZoneUnlocked) RefreshRyzenStatus();
     }
 
     private static T Probe<T>(Func<T> read, T fallback)
@@ -296,6 +300,178 @@ public sealed class AsusViewModel : ObservableObject
     public double KeyboardBrightness { get => Saved.KeyboardBrightness; set { Saved.KeyboardBrightness = (int)value; OnPropertyChanged(); } }
     public ICommand ApplyKeyboardCommand { get; }
 
+    // ---- Danger zone: power limits and CPU undervolting --------------------------------
+
+    public bool DangerZoneUnlocked
+    {
+        get => Saved.DangerZoneUnlocked;
+        set
+        {
+            Saved.DangerZoneUnlocked = value;
+            if (!value) Saved.Ryzen.ApplyAutomatically = false;
+            _services.SaveSettings();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(RyzenApplyAutomatically));
+            if (value) RefreshRyzenStatus();
+        }
+    }
+
+    private RyzenTuningSettings Ryzen => Saved.Ryzen;
+    private string _ryzenStatus = "";
+    public string RyzenStatus { get => _ryzenStatus; private set => Set(ref _ryzenStatus, value); }
+    private bool _pawnIoMissing;
+    public bool PawnIoMissing { get => _pawnIoMissing; private set => Set(ref _pawnIoMissing, value); }
+    public bool NeedsAdmin => !AppServices.IsAdministrator;
+
+    public double CurveOffset { get => Ryzen.CurveOffset; set { Ryzen.CurveOffset = (int)value; OnPropertyChanged(); } }
+    public bool UseTempLimit
+    {
+        get => Ryzen.TempLimit is not null;
+        set { Ryzen.TempLimit = value ? (int)TempLimit : null; OnPropertyChanged(); }
+    }
+    private double _tempLimit = 90;
+    public double TempLimit
+    {
+        get => Ryzen.TempLimit ?? _tempLimit;
+        set { _tempLimit = value; if (Ryzen.TempLimit is not null) Ryzen.TempLimit = (int)value; OnPropertyChanged(); }
+    }
+    public bool RyzenApplyAutomatically
+    {
+        get => Ryzen.ApplyAutomatically;
+        set { Ryzen.ApplyAutomatically = value; _services.SaveSettings(); OnPropertyChanged(); }
+    }
+
+    public ICommand ApplyRyzenCommand => new RelayCommand(() => RunRyzen(apply: true));
+    public ICommand ResetRyzenCommand => new RelayCommand(() => RunRyzen(apply: false));
+    public ICommand InstallPawnIoCommand => new RelayCommand(() => SystemIntegration.OpenUrl(RyzenTuning.PawnIoUrl));
+    public ICommand RestartAsAdminCommand => new RelayCommand(() =>
+    {
+        if (SystemIntegration.RestartAsAdministrator()) ((App)System.Windows.Application.Current).ExitApp();
+    });
+
+    private void RefreshRyzenStatus()
+    {
+        Task.Run(() =>
+        {
+            using var smu = RyzenTuning.Open(out string problem);
+            string text = smu is null ? problem
+                : smu.Family == AiO.Core.Ryzen.RyzenFamily.Unsupported ? $"Connected, but AiO doesn't know how to tune this CPU ({smu.CodeName})."
+                : $"Ready: {smu.CodeName} CPU via PawnIO.";
+            bool missing = problem.Contains("PawnIO driver isn't installed");
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => { RyzenStatus = text; PawnIoMissing = missing; });
+        });
+    }
+
+    private void RunRyzen(bool apply)
+    {
+        if (!apply)
+        {
+            Ryzen.CurveOffset = 0;
+            Ryzen.TempLimit = null;
+            OnPropertyChanged(nameof(CurveOffset));
+            OnPropertyChanged(nameof(UseTempLimit));
+        }
+        _services.SaveSettings();
+        // Resetting sends offset 0 and the stock 100 °C limit so the CPU is back to defaults now, not after a reboot.
+        var send = apply ? Ryzen : new RyzenTuningSettings { CurveOffset = 0, TempLimit = AiO.Core.Ryzen.RyzenSmuProtocol.MaxTempLimit };
+        Task.Run(() =>
+        {
+            string result = RyzenTuning.Apply(send);
+            _services.Report(result);
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => RyzenStatus = result);
+        });
+    }
+
+    // ---- Slash lid lighting --------------------------------------------------------
+
+    public bool SlashAvailable { get; } = AsusSlash.IsSlashModel(SystemInfo.ReadBios().Model);
+    private SlashSettings Slash => Saved.Slash;
+    public IReadOnlyList<SlashEffect> SlashEffects { get; } = Enum.GetValues<SlashEffect>();
+    public bool SlashOn { get => Slash.On; set { Slash.On = value; OnPropertyChanged(); } }
+    public SlashEffect SelectedSlashEffect { get => Slash.Effect; set { Slash.Effect = value; OnPropertyChanged(); } }
+    public double SlashBrightness { get => Slash.Brightness; set { Slash.Brightness = (int)value; OnPropertyChanged(); } }
+    public double SlashInterval { get => Slash.Interval; set { Slash.Interval = (int)value; OnPropertyChanged(); } }
+    public bool SlashOnBattery { get => Slash.OnBattery; set { Slash.OnBattery = value; OnPropertyChanged(); } }
+    public bool SlashOnLidClosed { get => Slash.OnLidClosed; set { Slash.OnLidClosed = value; OnPropertyChanged(); } }
+    public ICommand ApplySlashCommand => new RelayCommand(ApplySlash);
+
+    private void ApplySlash()
+    {
+        try
+        {
+            if (StartupApplier.ApplySlash(Slash))
+            {
+                Slash.Manage = true;
+                _services.SaveSettings();
+                _services.Report(Slash.On ? $"Slash lighting: {Slash.Effect}." : "Slash lighting off.");
+            }
+            else
+            {
+                _services.Report("The Slash lighting didn't accept the command. Close Armoury Crate or G-Helper and try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _services.Report($"Slash lighting failed: {ex.Message}");
+        }
+    }
+
+    // ---- Fn-lock, touchpad, camera -------------------------------------------------
+
+    private bool? _supportsFnLock;
+    public bool SupportsFnLock => _supportsFnLock ??= Probe(() => _asus.SupportsFnLock, false);
+
+    public bool FnLock
+    {
+        get => Saved.FnLock == true;
+        set
+        {
+            try
+            {
+                _asus.SetFnLock(value);
+                Saved.FnLock = value;
+                _services.SaveSettings();
+                _services.ShowOsd("\uE765", value ? "Fn-lock on: F1–F12 are function keys" : "Fn-lock off: F1–F12 are media keys");
+            }
+            catch (Exception ex)
+            {
+                _services.Report($"Fn-lock failed: {ex.Message}");
+            }
+            OnPropertyChanged();
+        }
+    }
+
+    public void ToggleFnLock()
+    {
+        if (!SupportsFnLock) { _services.Report("This laptop has no firmware Fn-lock."); return; }
+        FnLock = !FnLock;
+    }
+
+    public ICommand ToggleTouchpadCommand => new RelayCommand(() =>
+        Runner?.Invoke(new AiO.Core.Keyboard.KeyMapping { Action = AiO.Core.Keyboard.KeyActionType.ToggleTouchpad, Target = null }));
+
+    public ICommand ToggleCameraCommand => new RelayCommand(ToggleCamera);
+
+    /// <summary>Runs a key action (set by the main view model), for buttons that mirror hotkey actions.</summary>
+    public Action<AiO.Core.Keyboard.KeyMapping>? Runner { get; init; }
+
+    public void ToggleCamera()
+    {
+        try
+        {
+            _services.ShowOsd("\uE714", _asus.ToggleCamera() switch
+            {
+                true => "Camera on",
+                false => "Camera off",
+                null => "This laptop doesn't let software switch the camera",
+            });
+        }
+        catch (Exception ex)
+        {
+            _services.Report($"Camera toggle failed: {ex.Message}");
+        }
+    }
+
     /// <summary>Hotkey action: switches to the next lighting effect and applies it.</summary>
     public void NextAuraMode()
     {
@@ -303,11 +479,10 @@ public sealed class AsusViewModel : ObservableObject
         int index = Array.IndexOf(modes.ToArray(), AuraMode);
         AuraMode = modes[(index + 1) % modes.Count];
         ApplyKeyboard();
-        _services.Report($"Keyboard lighting: {AuraMode}.");
     }
 
     /// <summary>Hotkey action: one brightness step up (wrapping from max to off) or down.</summary>
-    public void StepKeyboardBrightness(int delta)
+    public int StepKeyboardBrightness(int delta)
     {
         int level = Saved.KeyboardBrightness + delta;
         level = level > 3 ? 0 : Math.Max(0, level);
@@ -316,12 +491,12 @@ public sealed class AsusViewModel : ObservableObject
         {
             AsusAura.SetBrightness(level, _asus.Acpi);
             _services.SaveSettings();
-            _services.Report(level == 0 ? "Keyboard backlight off." : $"Keyboard backlight {level}/3.");
         }
         catch (Exception ex)
         {
             _services.Report($"Keyboard backlight failed: {ex.Message}");
         }
+        return level;
     }
 
     private void ApplyKeyboard()

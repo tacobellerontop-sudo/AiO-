@@ -31,14 +31,43 @@ public sealed class DisplayInfo
     public DisplayOrientation Orientation { get; init; }
     public required IReadOnlyList<DisplayMode> Modes { get; init; }
     public HdrState? Hdr { get; init; }
+    /// <summary>The laptop's built-in panel (eDP / LVDS).</summary>
+    public bool IsInternal { get; init; }
     public DisplayScale? Scale { get; init; }
 
     public string ShortName => DeviceName.Replace(@"\\.\", "");
     public override string ToString() => $"{FriendlyName} ({ShortName})";
 }
 
+/// <summary>Refresh rate to switch a panel to, keeping its resolution.</summary>
+public enum RefreshChoice
+{
+    /// <summary>The panel's highest rate (e.g. 120/144/165/240 Hz).</summary>
+    Highest,
+    /// <summary>60 Hz (or the lowest rate the panel offers if it has no 60 Hz mode), to save battery.</summary>
+    Lowest,
+}
+
 public static class DisplayModeMath
 {
+    /// <summary>
+    /// The mode at <paramref name="current"/>'s resolution with the chosen refresh rate,
+    /// or null when the panel is already there or offers nothing else.
+    /// </summary>
+    public static DisplayMode? PickRefresh(IEnumerable<DisplayMode> modes, DisplayMode current, RefreshChoice choice)
+    {
+        var sameSize = modes.Where(m => m.Width == current.Width && m.Height == current.Height).ToList();
+        if (sameSize.Count == 0) return null;
+        DisplayMode pick = choice == RefreshChoice.Highest
+            ? sameSize.MaxBy(m => m.RefreshRate)!
+            : sameSize.Where(m => m.RefreshRate >= 60).MinBy(m => m.RefreshRate) ?? sameSize.MinBy(m => m.RefreshRate)!;
+        return pick.RefreshRate == current.RefreshRate ? null : pick;
+    }
+
+    /// <summary>CCD output technologies of built-in panels: internal, LVDS, embedded DisplayPort, embedded UDI.</summary>
+    public static bool IsInternalTechnology(uint outputTechnology) =>
+        outputTechnology is 0x80000000 or 6 or 11 or 13;
+
     /// <summary>Dedupes and sorts modes: biggest resolution first, then highest refresh rate.</summary>
     public static IReadOnlyList<DisplayMode> Normalize(IEnumerable<DisplayMode> modes) =>
         modes.Where(m => m.BitsPerPixel >= 24 && m.RefreshRate > 1)

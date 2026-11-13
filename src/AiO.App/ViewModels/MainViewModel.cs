@@ -39,6 +39,9 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>ASUS M-key / Fn hotkey listener; null when the ASUS driver isn't there.</summary>
     public AsusHotkeysViewModel? Hotkeys { get; private set; }
 
+    /// <summary>Charger / idle / resume automation; null when the ASUS driver isn't there.</summary>
+    public AsusAutomationViewModel? Automation { get; private set; }
+
     public UpdateViewModel Updates => UpdateViewModel.Instance;
 
     public string Version => "Version " + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "");
@@ -91,7 +94,8 @@ public sealed class MainViewModel : ObservableObject
             if (services.Asus is { } asus)
             {
                 Hotkeys ??= new AsusHotkeysViewModel(Actions);
-                Asus = new AsusViewModel(asus) { Hotkeys = Hotkeys };
+                Automation ??= new AsusAutomationViewModel(() => Asus, () => Hotkeys?.Restart());
+                Asus = new AsusViewModel(asus) { Hotkeys = Hotkeys, Automation = Automation, Runner = Actions.Run };
             }
         }
         catch (Exception ex)

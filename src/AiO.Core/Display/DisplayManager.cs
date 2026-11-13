@@ -35,10 +35,22 @@ public static class DisplayManager
                 Orientation = (DisplayOrientation)current.dmDisplayOrientation,
                 Modes = EnumerateModes(adapter.DeviceName, (DisplayOrientation)current.dmDisplayOrientation),
                 Hdr = path.HasValue ? ReadHdr(path.Value) : null,
+                IsInternal = path.HasValue && DisplayModeMath.IsInternalTechnology(path.Value.targetInfo.outputTechnology),
                 Scale = path.HasValue ? ReadScale(path.Value) : null,
             });
         }
         return displays;
+    }
+
+    /// <summary>The laptop's built-in panel, or null when it's off or there is none.</summary>
+    public static DisplayInfo? GetInternalDisplay() => GetDisplays().FirstOrDefault(d => d.IsInternal);
+
+    /// <summary>Switches the built-in panel's refresh rate, keeping its resolution. Null result = nothing to change.</summary>
+    public static DisplayChangeResult? SetInternalRefresh(RefreshChoice choice)
+    {
+        if (GetInternalDisplay() is not { } panel) return new(false, false, "No built-in screen is active.");
+        if (DisplayModeMath.PickRefresh(panel.Modes, panel.CurrentMode, choice) is not { } mode) return null;
+        return SetMode(panel, mode);
     }
 
     /// <summary>AiO always describes modes in landscape terms; rotation is tracked separately.</summary>

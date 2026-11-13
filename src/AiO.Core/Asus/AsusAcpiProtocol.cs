@@ -37,6 +37,9 @@ public static class AsusDeviceIds
     public const uint GpuTempTarget = 0x001200C2;
 
     public const uint KeyboardBrightnessAcpi = 0x00050021;
+
+    public const uint FnLock = 0x00100023;
+    public const uint CameraShutter = 0x00060078;
 }
 
 public enum AsusPerformanceMode

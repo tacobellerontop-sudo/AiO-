@@ -57,6 +57,12 @@ public enum KeyActionType
     LockScreen,
     /// <summary>Turn the displays off until the mouse or keyboard is used.</summary>
     ScreenOff,
+    /// <summary>Turn the touchpad on or off (Windows' own Ctrl+Win+F24 toggle).</summary>
+    ToggleTouchpad,
+    /// <summary>Toggle the ASUS Fn-lock.</summary>
+    ToggleFnLock,
+    /// <summary>Turn the camera on or off on ASUS models with a software camera switch.</summary>
+    ToggleCamera,
 }
 
 public sealed class KeyMapping
@@ -103,6 +109,9 @@ public sealed class KeyMapping
         KeyActionType.KeyboardBrightnessDown => "Keyboard backlight dimmer",
         KeyActionType.LockScreen => "Lock the PC",
         KeyActionType.ScreenOff => "Turn the screen off",
+        KeyActionType.ToggleTouchpad => "Touchpad on / off",
+        KeyActionType.ToggleFnLock => "Fn-lock on / off",
+        KeyActionType.ToggleCamera => "Camera on / off",
         _ => action.ToString(),
     };
 

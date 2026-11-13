@@ -46,21 +46,29 @@ public sealed class ActionRunner(Func<AsusViewModel?> asus)
                 catch (Exception ex) { _services.Report($"Couldn't run \"{m.Command}\": {ex.Message}"); }
                 break;
             case KeyActionType.CycleAsusMode:
-                OnAsus(a => a.PerformanceMode = a.PerformanceMode switch
+                OnAsus(a =>
                 {
-                    AsusPerformanceMode.Silent => AsusPerformanceMode.Balanced,
-                    AsusPerformanceMode.Balanced => AsusPerformanceMode.Turbo,
-                    _ => AsusPerformanceMode.Silent,
+                    a.PerformanceMode = a.PerformanceMode switch
+                    {
+                        AsusPerformanceMode.Silent => AsusPerformanceMode.Balanced,
+                        AsusPerformanceMode.Balanced => AsusPerformanceMode.Turbo,
+                        _ => AsusPerformanceMode.Silent,
+                    };
+                    _services.ShowOsd("\uEC4A", $"{a.PerformanceMode} mode");
                 });
                 break;
             case KeyActionType.NextKeyboardLighting:
-                OnAsus(a => a.NextAuraMode());
+                OnAsus(a =>
+                {
+                    a.NextAuraMode();
+                    _services.ShowOsd("\uE765", $"Keyboard lighting: {a.AuraMode}");
+                });
                 break;
             case KeyActionType.KeyboardBrightnessUp:
-                OnAsus(a => a.StepKeyboardBrightness(+1));
+                OnAsus(a => ShowBacklight(a.StepKeyboardBrightness(+1)));
                 break;
             case KeyActionType.KeyboardBrightnessDown:
-                OnAsus(a => a.StepKeyboardBrightness(-1));
+                OnAsus(a => ShowBacklight(a.StepKeyboardBrightness(-1)));
                 break;
             case KeyActionType.ApplyColorPreset:
                 if (ColorPresets.Find(m.Text) is { } preset) _ = ColorPresets.ApplyToAllAsync(preset);
@@ -70,12 +78,23 @@ public sealed class ActionRunner(Func<AsusViewModel?> asus)
                 Application.Current.Dispatcher.BeginInvoke(() => OpenAiORequested?.Invoke());
                 break;
             case KeyActionType.MicrophoneMute:
-                _services.Report(Microphone.ToggleMute() switch
+                _services.ShowOsd("\uE720", Microphone.ToggleMute() switch
                 {
-                    true => "Microphone muted.",
-                    false => "Microphone on.",
-                    null => "No microphone found.",
+                    true => "Microphone muted",
+                    false => "Microphone on",
+                    null => "No microphone found",
                 });
+                break;
+            case KeyActionType.ToggleTouchpad:
+                // Windows' own precision-touchpad toggle shortcut.
+                KeyboardHook.SendChord(new KeyChord(KeyModifiers.Ctrl | KeyModifiers.Win, 0x87 /* F24 */));
+                _services.ShowOsd("\uEFA5", "Touchpad toggled");
+                break;
+            case KeyActionType.ToggleFnLock:
+                OnAsus(a => a.ToggleFnLock());
+                break;
+            case KeyActionType.ToggleCamera:
+                OnAsus(a => a.ToggleCamera());
                 break;
             case KeyActionType.LockScreen:
                 LockWorkStation();
@@ -86,6 +105,9 @@ public sealed class ActionRunner(Func<AsusViewModel?> asus)
                 break;
         }
     }
+
+    private void ShowBacklight(int level) =>
+        _services.ShowOsd("\uE706", level == 0 ? "Keyboard backlight off" : $"Keyboard backlight {level}/3");
 
     private void OnAsus(Action<AsusViewModel> action) =>
         Application.Current.Dispatcher.BeginInvoke(() =>

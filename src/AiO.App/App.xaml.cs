@@ -15,6 +15,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private MainWindow? _window;
     private MainViewModel? _viewModel;
+    private OsdWindow? _osd;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -42,6 +43,7 @@ public partial class App : Application
 
         var services = AppServices.Instance;
         services.Settings.Load();
+        services.OsdRequested += (glyph, text) => Dispatcher.BeginInvoke(() => (_osd ??= new OsdWindow()).Show(glyph, text));
         if (services.Settings.Current.General.ApplyOnStartup) StartupApplier.ApplyAll(services);
 
         _viewModel = new MainViewModel();
@@ -139,10 +141,15 @@ public partial class App : Application
     public void ExitApp()
     {
         _exiting = true;
+        // A clean exit isn't a crash: don't let the undervolt crash guard trip next start.
+        var ryzen = AppServices.Instance.Settings.Current.Asus.Ryzen;
+        if (ryzen.AutoApplyPendingSince is not null) { ryzen.AutoApplyPendingSince = null; AppServices.Instance.SaveSettings(); }
         _window?.Close();
         _tray?.Dispose();
         _viewModel?.Keyboard.Dispose();
         _viewModel?.Hotkeys?.Dispose();
+        _viewModel?.Automation?.Dispose();
+        _osd?.Close();
         AppServices.Instance.Dispose();
         Shutdown();
     }
