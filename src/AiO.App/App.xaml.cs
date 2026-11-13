@@ -56,7 +56,7 @@ public partial class App : Application
             if (ColorPresets.Find(name) is { } preset) _ = ColorPresets.ApplyToAllAsync(preset);
         };
         _tray.OpenRequested += ShowMainWindow;
-        _tray.ExitRequested += ExitApp;
+        _tray.ExitRequested += () => ExitApp();
         _tray.PerformanceModeRequested += mode =>
         {
             if (_viewModel.Asus is { } asus) asus.PerformanceMode = mode;
@@ -140,12 +140,14 @@ public partial class App : Application
 
     private bool _exiting;
 
-    public void ExitApp()
+    /// <param name="saveSettings">False after the settings file was replaced on disk (import / reset), so it isn't overwritten.</param>
+    public void ExitApp(bool saveSettings = true)
     {
         _exiting = true;
+        if (!saveSettings) AppServices.Instance.SuppressSaves = true;
         // A clean exit isn't a crash: don't let the undervolt crash guard trip next start.
         var ryzen = AppServices.Instance.Settings.Current.Asus.Ryzen;
-        if (ryzen.AutoApplyPendingSince is not null) { ryzen.AutoApplyPendingSince = null; AppServices.Instance.SaveSettings(); }
+        if (saveSettings && ryzen.AutoApplyPendingSince is not null) { ryzen.AutoApplyPendingSince = null; AppServices.Instance.SaveSettings(); }
         _window?.Close();
         _tray?.Dispose();
         _viewModel?.Keyboard.Dispose();

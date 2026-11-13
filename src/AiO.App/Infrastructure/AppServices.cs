@@ -66,8 +66,12 @@ public sealed class AppServices : IDisposable
         if (Settings.Current.General.ShowOsd) OsdRequested?.Invoke(glyph, text);
     }
 
+    /// <summary>Set while AiO exits after the settings file was replaced on disk, so nothing writes the old settings back.</summary>
+    public bool SuppressSaves { get; set; }
+
     public void SaveSettings()
     {
+        if (SuppressSaves) return;
         try { Settings.Save(); }
         catch (Exception ex) { Report($"Could not save settings: {ex.Message}"); }
     }

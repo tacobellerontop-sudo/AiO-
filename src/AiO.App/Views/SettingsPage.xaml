@@ -12,6 +12,22 @@
                 <CheckBox Content="Start minimised to the tray" IsChecked="{Binding StartMinimized}" />
                 <CheckBox Content="Closing the window keeps AiO running in the tray" IsChecked="{Binding CloseToTray}" />
                 <CheckBox Content="Re-apply colour and ASUS settings when AiO starts" IsChecked="{Binding ApplyOnStartup}" />
+                <CheckBox Content="Show a small on-screen popup when a hotkey or the charger switches something" IsChecked="{Binding ShowOsd}" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE777;" Title="Backup and reset"
+                              Subtitle="Save every AiO setting (colours, mappings, fan curves, presets...) to a file, move it to another PC, or start over." />
+                <WrapPanel>
+                    <Button Content="Back up settings" Command="{Binding ExportSettingsCommand}" Margin="0,0,8,8" />
+                    <Button Content="Restore from backup" Command="{Binding ImportSettingsCommand}" Margin="0,0,8,8" />
+                    <Button Content="Reset to defaults" Command="{Binding ResetSettingsCommand}" Margin="0,0,8,8" />
+                    <Button Content="Restart AiO" Command="{Binding RestartAppCommand}" Margin="0,0,8,8" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap"
+                           Text="Restoring never turns on automatic undervolting; re-enable it in the Danger zone if you want it." />
             </StackPanel>
         </Border>
 
