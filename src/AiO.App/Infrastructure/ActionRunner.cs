@@ -99,11 +99,48 @@ public sealed class ActionRunner(Func<AsusViewModel?> asus)
             case KeyActionType.LockScreen:
                 LockWorkStation();
                 break;
+            case KeyActionType.MediaPlayPause: Tap(0xB3); break;
+            case KeyActionType.MediaNext: Tap(0xB0); break;
+            case KeyActionType.MediaPrevious: Tap(0xB1); break;
+            case KeyActionType.VolumeUp: Tap(0xAF); break;
+            case KeyActionType.VolumeDown: Tap(0xAE); break;
+            case KeyActionType.VolumeMute: Tap(0xAD); break;
+            case KeyActionType.SetSilentMode: SetMode(AsusPerformanceMode.Silent); break;
+            case KeyActionType.SetBalancedMode: SetMode(AsusPerformanceMode.Balanced); break;
+            case KeyActionType.SetTurboMode: SetMode(AsusPerformanceMode.Turbo); break;
+            case KeyActionType.AlwaysOnTop:
+                ToggleTopmost();
+                break;
+            case KeyActionType.Screenshot:
+                KeyboardHook.SendChord(new KeyChord(KeyModifiers.Win | KeyModifiers.Shift, 'S'));
+                break;
+            case KeyActionType.ShowDesktop:
+                KeyboardHook.SendChord(new KeyChord(KeyModifiers.Win, 'D'));
+                break;
             case KeyActionType.ScreenOff:
                 // Posted, not sent: a hung window would otherwise block the broadcast.
                 PostMessage(new IntPtr(0xFFFF), 0x0112 /* WM_SYSCOMMAND */, new IntPtr(0xF170) /* SC_MONITORPOWER */, new IntPtr(2));
                 break;
         }
+    }
+
+    private static void Tap(int vk) => KeyboardHook.SendChord(new KeyChord(KeyModifiers.None, vk));
+
+    private void SetMode(AsusPerformanceMode mode) =>
+        OnAsus(a =>
+        {
+            a.PerformanceMode = mode;
+            _services.ShowOsd("\uEC4A", $"{mode} mode");
+        });
+
+    private void ToggleTopmost()
+    {
+        IntPtr hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) return;
+        bool topmost = (GetWindowLongPtr(hwnd, -20 /* GWL_EXSTYLE */).ToInt64() & 0x8 /* WS_EX_TOPMOST */) != 0;
+        // HWND_NOTOPMOST = -2, HWND_TOPMOST = -1; SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE.
+        SetWindowPos(hwnd, new IntPtr(topmost ? -2 : -1), 0, 0, 0, 0, 0x1 | 0x2 | 0x10);
+        _services.ShowOsd("\uE718", topmost ? "Window no longer on top" : "Window kept on top");
     }
 
     private void ShowBacklight(int level) =>
@@ -118,6 +155,15 @@ public sealed class ActionRunner(Func<AsusViewModel?> asus)
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool LockWorkStation();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
 
     [DllImport("user32.dll")]
     private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);

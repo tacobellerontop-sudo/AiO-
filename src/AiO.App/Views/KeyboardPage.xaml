@@ -106,7 +106,11 @@
         <Border Style="{StaticResource Card}">
             <StackPanel>
                 <c:CardHeader Glyph="&#xE8FD;" Title="Mappings">
-                    <Button Content="Add mapping" Style="{StaticResource AccentButton}" Command="{Binding AddCommand}" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Import" Command="{Binding ImportCommand}" Margin="0,0,8,0" ToolTip="Add mappings from a file" />
+                        <Button Content="Export" Command="{Binding ExportCommand}" Margin="0,0,8,0" ToolTip="Save your mappings to a file (backup or another PC)" />
+                        <Button Content="Add mapping" Style="{StaticResource AccentButton}" Command="{Binding AddCommand}" />
+                    </StackPanel>
                 </c:CardHeader>
                 <TextBlock Style="{StaticResource Muted}" Text="No mappings yet. Add one, or start from a preset below."
                            Visibility="{Binding HasMappings, Converter={StaticResource Hidden}}" />
@@ -117,6 +121,8 @@
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                         <CheckBox IsChecked="{Binding Enabled}" Margin="0,0,10,0" ToolTip="Enabled" />
+                                        <Button Content="&#xE768;" FontFamily="{StaticResource IconFont}" Command="{Binding TestCommand}" CommandParameter="{Binding}"
+                                                ToolTip="Run the action now" Margin="0,0,6,0" />
                                         <Button Content="&#xE70F;" FontFamily="{StaticResource IconFont}" Command="{Binding EditCommand}" ToolTip="Edit" Margin="0,0,6,0" />
                                         <Button Content="&#xE74D;" FontFamily="{StaticResource IconFont}" Command="{Binding DeleteCommand}" ToolTip="Delete" />
                                     </StackPanel>
@@ -152,7 +158,20 @@
                     <Button Content="Ctrl+Alt+E → type e-mail" Command="{Binding PresetCommand}" CommandParameter="email" Margin="0,0,8,8" />
                     <Button Content="Ctrl+Alt+V → Vivid colours" Command="{Binding PresetCommand}" CommandParameter="vivid" Margin="0,0,8,8" />
                     <Button Content="Ctrl+Alt+D → Default colours" Command="{Binding PresetCommand}" CommandParameter="default-colors" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+Space → keep window on top" Command="{Binding PresetCommand}" CommandParameter="on-top" Margin="0,0,8,8" />
+                    <Button Content="Pause → play / pause media" Command="{Binding PresetCommand}" CommandParameter="media" Margin="0,0,8,8" />
+                    <Button Content="Ctrl+Alt+S → screen snip" Command="{Binding PresetCommand}" CommandParameter="snip" Margin="0,0,8,8" />
                 </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Typing -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE765;" Title="Typing" Subtitle="{Binding RepeatText}" />
+                <c:SliderRow Label="Repeat delay" Minimum="0" Maximum="3" Format="{}{0:0} / 3" Value="{Binding RepeatDelay}" />
+                <c:SliderRow Label="Repeat rate" Minimum="0" Maximum="31" Format="{}{0:0} / 31" Value="{Binding RepeatRate}" />
+                <TextBox Margin="0,8,0,0" Text="" ToolTip="Click here and hold a key to try the repeat settings" />
             </StackPanel>
         </Border>
     </StackPanel>

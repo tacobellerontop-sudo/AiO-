@@ -28,6 +28,9 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
         SaveCommand = new RelayCommand(SaveEdit, () => Editor is not null);
         CancelCommand = new RelayCommand(() => Editor = null);
         PresetCommand = new RelayCommand(p => AddPreset(p as string));
+        ExportCommand = new RelayCommand(Export, () => Saved.Mappings.Count > 0);
+        ImportCommand = new RelayCommand(Import);
+        TestCommand = new RelayCommand(p => { if (p is KeyMappingViewModel vm) _actions.Run(vm.Model); });
 
         UpdateHook();
     }
@@ -64,6 +67,96 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
     public ICommand SaveCommand { get; }
     public ICommand CancelCommand { get; }
     public ICommand PresetCommand { get; }
+    public ICommand ExportCommand { get; }
+    public ICommand ImportCommand { get; }
+    /// <summary>Runs a mapping's action now, to check it does what you expect.</summary>
+    public ICommand TestCommand { get; }
+
+    // ---- Typing (Windows key repeat) --------------------------------------------------
+
+    private readonly Debouncer _repeatDebounce = new(TimeSpan.FromMilliseconds(150));
+    private double _repeatDelay = Safe(WindowsKeyboard.GetRepeatDelay, 1);
+    private double _repeatRate = Safe(WindowsKeyboard.GetRepeatRate, 31);
+
+    private static T Safe<T>(Func<T> f, T fallback)
+    {
+        try { return f(); } catch { return fallback; }
+    }
+
+    public double RepeatDelay
+    {
+        get => _repeatDelay;
+        set
+        {
+            if (!Set(ref _repeatDelay, value)) return;
+            _repeatDebounce.Run(() => WindowsKeyboard.SetRepeatDelay((int)value));
+            OnPropertyChanged(nameof(RepeatText));
+        }
+    }
+
+    public double RepeatRate
+    {
+        get => _repeatRate;
+        set
+        {
+            if (!Set(ref _repeatRate, value)) return;
+            _repeatDebounce.Run(() => WindowsKeyboard.SetRepeatRate((int)value));
+            OnPropertyChanged(nameof(RepeatText));
+        }
+    }
+
+    public string RepeatText =>
+        $"Held keys start repeating after about {WindowsKeyboard.DelayMilliseconds((int)_repeatDelay)} ms, " +
+        $"then about {WindowsKeyboard.RatePerSecond((int)_repeatRate):0} times a second.";
+
+    // ---- Import / export ----------------------------------------------------------------
+
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
+    private void Export()
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = "AiO keyboard mappings.json",
+            Filter = "Keyboard mappings (*.json)|*.json",
+        };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            System.IO.File.WriteAllText(dialog.FileName, System.Text.Json.JsonSerializer.Serialize(Saved.Mappings, JsonOptions));
+            _services.Report($"Saved {Saved.Mappings.Count} mappings.");
+        }
+        catch (Exception ex) { _services.Report($"Could not save the mappings: {ex.Message}"); }
+    }
+
+    private void Import()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Keyboard mappings (*.json)|*.json" };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            var imported = System.Text.Json.JsonSerializer.Deserialize<List<KeyMapping>>(System.IO.File.ReadAllText(dialog.FileName), JsonOptions) ?? [];
+            int added = 0;
+            foreach (var m in imported)
+            {
+                // Skip exact duplicates of a trigger that's already mapped in the same scope.
+                if (Saved.Mappings.Any(x => x.Trigger == m.Trigger && string.Equals(x.AppFilter ?? "", m.AppFilter ?? "", StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                Saved.Mappings.Add(m);
+                Mappings.Add(new KeyMappingViewModel(m, this));
+                added++;
+            }
+            Changed();
+            _services.Report(added == imported.Count
+                ? $"Imported {added} mappings."
+                : $"Imported {added} mappings; skipped {imported.Count - added} whose shortcut is already mapped.");
+        }
+        catch (Exception ex) { _services.Report($"Could not read that file: {ex.Message}"); }
+    }
 
     /// <summary>The mapping being added or edited, or null when the editor is closed.</summary>
     public MappingEditor? Editor
@@ -136,6 +229,9 @@ public sealed class KeyboardViewModel : ObservableObject, IDisposable
             "email" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'E'), Action = KeyActionType.TypeText, Text = "you@example.com", Target = null },
             "vivid" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'V'), Action = KeyActionType.ApplyColorPreset, Text = "Vivid", Target = null },
             "default-colors" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'D'), Action = KeyActionType.ApplyColorPreset, Text = "Default", Target = null },
+            "on-top" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, VirtualKeys.Space), Action = KeyActionType.AlwaysOnTop, Target = null },
+            "media" => new() { Trigger = new(KeyModifiers.None, VirtualKeys.Pause), Action = KeyActionType.MediaPlayPause, Target = null },
+            "snip" => new() { Trigger = new(KeyModifiers.Ctrl | KeyModifiers.Alt, 'S'), Action = KeyActionType.Screenshot, Target = null },
             _ => null,
         };
         if (m is not null) BeginEdit(m, isNew: true);
@@ -186,6 +282,7 @@ public sealed class KeyMappingViewModel(KeyMapping model, KeyboardViewModel owne
     }
 
     public ICommand EditCommand => new RelayCommand(() => owner.BeginEdit(this));
+    public ICommand TestCommand => owner.TestCommand;
     public ICommand DeleteCommand => new RelayCommand(() => owner.Delete(this));
 }
 
