@@ -110,5 +110,17 @@
                 <CheckBox Content="Enhance pointer precision (Windows acceleration)" IsChecked="{Binding EnhancePointerPrecision}" Margin="0,8,0,0" />
             </StackPanel>
         </Border>
+
+        <!-- Wheel and buttons -->
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE962;" Title="Wheel and buttons" Subtitle="Windows' scroll speed, double-click speed and button settings, without digging through Control Panel." />
+                <c:SliderRow Label="Lines per scroll" Minimum="1" Maximum="30" Format="{}{0:0}" Value="{Binding ScrollLines}" />
+                <c:SliderRow Label="Sideways scroll" Minimum="1" Maximum="30" Format="{}{0:0} chars" Value="{Binding ScrollChars}" />
+                <c:SliderRow Label="Double-click speed" Minimum="200" Maximum="900" Step="10" Format="{}{0:0} ms" Value="{Binding DoubleClickTime}" />
+                <CheckBox Content="Swap left and right buttons (left-handed)" IsChecked="{Binding ButtonsSwapped}" Margin="0,8,0,0" />
+                <CheckBox Content="Show where the pointer is when I press Ctrl" IsChecked="{Binding PointerSonar}" Margin="0,6,0,0" />
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

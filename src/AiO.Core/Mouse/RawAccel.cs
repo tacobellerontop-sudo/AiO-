@@ -234,4 +234,65 @@ public static class WindowsMouse
         int[] values = enabled ? [6, 10, 1] : [0, 0, 0];
         return User32.SystemParametersInfo(SPI_SETMOUSE, 0, values, SPIF_UPDATEINIFILE_SENDCHANGE);
     }
+
+    private const uint SPI_SETDOUBLECLICKTIME = 0x0020;
+    private const uint SPI_SETMOUSEBUTTONSWAP = 0x0021;
+    private const uint SPI_GETWHEELSCROLLLINES = 0x0068;
+    private const uint SPI_SETWHEELSCROLLLINES = 0x0069;
+    private const uint SPI_GETWHEELSCROLLCHARS = 0x006C;
+    private const uint SPI_SETWHEELSCROLLCHARS = 0x006D;
+    private const uint SPI_GETMOUSESONAR = 0x101C;
+    private const uint SPI_SETMOUSESONAR = 0x101D;
+    private const int SM_SWAPBUTTON = 23;
+
+    /// <summary>Lines per wheel notch (Windows default 3). "One screen at a time" reads as 30.</summary>
+    public static int GetScrollLines()
+    {
+        int lines = 3;
+        User32.SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, ref lines, 0);
+        return lines is < 1 or > 100 ? 30 : lines;
+    }
+
+    public static bool SetScrollLines(int lines) =>
+        User32.SystemParametersInfo(SPI_SETWHEELSCROLLLINES, (uint)Math.Clamp(lines, 1, 100), IntPtr.Zero, SPIF_UPDATEINIFILE_SENDCHANGE);
+
+    /// <summary>Characters per sideways wheel tilt (default 3).</summary>
+    public static int GetScrollChars()
+    {
+        int chars = 3;
+        User32.SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, ref chars, 0);
+        return Math.Clamp(chars, 1, 100);
+    }
+
+    public static bool SetScrollChars(int chars) =>
+        User32.SystemParametersInfo(SPI_SETWHEELSCROLLCHARS, (uint)Math.Clamp(chars, 1, 100), IntPtr.Zero, SPIF_UPDATEINIFILE_SENDCHANGE);
+
+    /// <summary>Maximum milliseconds between the clicks of a double-click (default 500).</summary>
+    public static int GetDoubleClickTime() => (int)GetDoubleClickTimeNative();
+
+    public static bool SetDoubleClickTime(int ms) =>
+        User32.SystemParametersInfo(SPI_SETDOUBLECLICKTIME, (uint)Math.Clamp(ms, 200, 900), IntPtr.Zero, SPIF_UPDATEINIFILE_SENDCHANGE);
+
+    /// <summary>Right button is the primary button (left-handed).</summary>
+    public static bool GetButtonsSwapped() => GetSystemMetrics(SM_SWAPBUTTON) != 0;
+
+    public static bool SetButtonsSwapped(bool swapped) =>
+        User32.SystemParametersInfo(SPI_SETMOUSEBUTTONSWAP, swapped ? 1u : 0u, IntPtr.Zero, SPIF_UPDATEINIFILE_SENDCHANGE);
+
+    /// <summary>"Show location of pointer when I press the Ctrl key".</summary>
+    public static bool GetSonar()
+    {
+        int on = 0;
+        User32.SystemParametersInfo(SPI_GETMOUSESONAR, 0, ref on, 0);
+        return on != 0;
+    }
+
+    public static bool SetSonar(bool enabled) =>
+        User32.SystemParametersInfo(SPI_SETMOUSESONAR, 0, (IntPtr)(enabled ? 1 : 0), SPIF_UPDATEINIFILE_SENDCHANGE);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetDoubleClickTime")]
+    private static extern uint GetDoubleClickTimeNative();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
 }
