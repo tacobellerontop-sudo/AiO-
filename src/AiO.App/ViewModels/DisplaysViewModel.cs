@@ -13,13 +13,45 @@ public sealed record Resolution(int Width, int Height)
 
 public sealed class DisplaysViewModel : ObservableObject
 {
+    private readonly Debouncer _brightnessDebounce = new(TimeSpan.FromMilliseconds(60));
+    private int? _panelBrightness;
+
     public ObservableCollection<DisplayItemViewModel> Displays { get; } = [];
     public ICommand RefreshCommand { get; }
+    /// <summary>Win+P: parameter is a <see cref="ProjectionMode"/> name.</summary>
+    public ICommand ProjectCommand { get; }
 
     public DisplaysViewModel()
     {
         RefreshCommand = new RelayCommand(Refresh);
+        ProjectCommand = new RelayCommand(p =>
+        {
+            if (p is not string name || !Enum.TryParse<ProjectionMode>(name, out var mode)) return;
+            AppServices.Instance.Report(DisplayExtras.SetProjection(mode)
+                ? "Projection changed. If the picture is wrong, press Win+P to pick another option."
+                : "Windows refused that projection mode. Is a second screen connected?");
+            // Windows takes a moment to settle the new topology.
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            timer.Tick += (_, _) => { timer.Stop(); Refresh(); };
+            timer.Start();
+        });
         Refresh();
+    }
+
+    /// <summary>The built-in screen's brightness exposed through WMI (most laptops).</summary>
+    public bool HasPanelBrightness => _panelBrightness is not null;
+
+    public double PanelBrightness
+    {
+        get => _panelBrightness ?? 0;
+        set
+        {
+            int v = (int)Math.Round(value);
+            if (_panelBrightness == v) return;
+            _panelBrightness = v;
+            OnPropertyChanged();
+            _brightnessDebounce.Run(() => Task.Run(() => DisplayExtras.SetPanelBrightness(v)));
+        }
     }
 
     public void Refresh()
@@ -27,29 +59,35 @@ public sealed class DisplaysViewModel : ObservableObject
         Displays.Clear();
         try
         {
-            foreach (var d in DisplayManager.GetDisplays().OrderByDescending(d => d.IsPrimary).ThenBy(d => d.DeviceName))
+            var all = DisplayManager.GetDisplays();
+            foreach (var d in all.OrderByDescending(d => d.IsPrimary).ThenBy(d => d.DeviceName))
                 // Deferred so a card can trigger a refresh from inside its own binding update.
-                Displays.Add(new DisplayItemViewModel(d, () => System.Windows.Application.Current.Dispatcher.BeginInvoke(Refresh)));
+                Displays.Add(new DisplayItemViewModel(d, all, () => System.Windows.Application.Current.Dispatcher.BeginInvoke(Refresh)));
         }
         catch (Exception ex)
         {
             AppServices.Instance.Report($"Could not read displays: {ex.Message}");
         }
+        _panelBrightness = DisplayExtras.GetPanelBrightness();
+        OnPropertyChanged(nameof(PanelBrightness));
+        OnPropertyChanged(nameof(HasPanelBrightness));
     }
 }
 
 public sealed class DisplayItemViewModel : ObservableObject
 {
     private readonly DisplayInfo _info;
+    private readonly IReadOnlyList<DisplayInfo> _all;
     private readonly Action _refresh;
     private Resolution? _selectedResolution;
     private int _selectedRefreshRate;
     private DisplayOrientation _selectedOrientation;
     private int _selectedScale;
 
-    public DisplayItemViewModel(DisplayInfo info, Action refresh)
+    public DisplayItemViewModel(DisplayInfo info, IReadOnlyList<DisplayInfo> all, Action refresh)
     {
         _info = info;
+        _all = all;
         _refresh = refresh;
         Resolutions = info.Modes.Select(m => new Resolution(m.Width, m.Height)).Distinct().ToList();
         _selectedResolution = new Resolution(info.CurrentMode.Width, info.CurrentMode.Height);
@@ -59,6 +97,29 @@ public sealed class DisplayItemViewModel : ObservableObject
 
         ApplyCommand = new RelayCommand(Apply);
         ApplyScaleCommand = new RelayCommand(ApplyScale, () => Scale is not null && SelectedScale != Scale.CurrentPercent);
+        MakePrimaryCommand = new RelayCommand(MakePrimary);
+        RefreshPresetCommand = new RelayCommand(p =>
+        {
+            if (p is not string which) return;
+            var rates = RefreshRates;
+            if (rates.Count == 0) return;
+            SelectedRefreshRate = which == "max" ? rates.Max() : rates.Min();
+            Apply();
+        });
+    }
+
+    public bool IsPrimary => _info.IsPrimary;
+    public bool CanMakePrimary => !_info.IsPrimary && _all.Count > 1;
+    public ICommand MakePrimaryCommand { get; }
+    /// <summary>"max" or "min": jump to the highest or lowest refresh rate at the current resolution.</summary>
+    public ICommand RefreshPresetCommand { get; }
+
+    private void MakePrimary()
+    {
+        AppServices.Instance.Report(DisplayExtras.SetPrimary(_info, _all)
+            ? $"{Title} is now the main display."
+            : "Windows refused to change the main display.");
+        _refresh();
     }
 
     public string Title => _info.FriendlyName;
