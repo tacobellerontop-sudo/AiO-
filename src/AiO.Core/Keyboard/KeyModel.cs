@@ -63,6 +63,23 @@ public enum KeyActionType
     ToggleFnLock,
     /// <summary>Turn the camera on or off on ASUS models with a software camera switch.</summary>
     ToggleCamera,
+    /// <summary>Media play / pause.</summary>
+    MediaPlayPause,
+    MediaNext,
+    MediaPrevious,
+    VolumeUp,
+    VolumeDown,
+    VolumeMute,
+    /// <summary>Switch straight to one ASUS performance mode.</summary>
+    SetSilentMode,
+    SetBalancedMode,
+    SetTurboMode,
+    /// <summary>Keep the window in front above all others (press again to release it).</summary>
+    AlwaysOnTop,
+    /// <summary>Windows' screen snip (Win+Shift+S).</summary>
+    Screenshot,
+    /// <summary>Minimise every window (Win+D).</summary>
+    ShowDesktop,
 }
 
 public sealed class KeyMapping
@@ -112,6 +129,18 @@ public sealed class KeyMapping
         KeyActionType.ToggleTouchpad => "Touchpad on / off",
         KeyActionType.ToggleFnLock => "Fn-lock on / off",
         KeyActionType.ToggleCamera => "Camera on / off",
+        KeyActionType.MediaPlayPause => "Media play / pause",
+        KeyActionType.MediaNext => "Media next track",
+        KeyActionType.MediaPrevious => "Media previous track",
+        KeyActionType.VolumeUp => "Volume up",
+        KeyActionType.VolumeDown => "Volume down",
+        KeyActionType.VolumeMute => "Mute / unmute sound",
+        KeyActionType.SetSilentMode => "Silent mode",
+        KeyActionType.SetBalancedMode => "Balanced mode",
+        KeyActionType.SetTurboMode => "Turbo mode",
+        KeyActionType.AlwaysOnTop => "Keep window on top",
+        KeyActionType.Screenshot => "Screen snip",
+        KeyActionType.ShowDesktop => "Show desktop",
         _ => action.ToString(),
     };
 
