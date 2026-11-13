@@ -8,6 +8,21 @@
             <Button Content="Refresh" Command="{Binding RefreshCommand}" />
         </c:PageHeader>
 
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE7F4;" Title="Quick settings" Subtitle="Built-in screen brightness and the Win+P projection mode." />
+                <c:SliderRow Label="Built-in brightness" Minimum="0" Maximum="100" Format="{}{0:0}%" Value="{Binding PanelBrightness}"
+                             Visibility="{Binding HasPanelBrightness, Converter={StaticResource Visible}}" Margin="0,0,0,8" />
+                <TextBlock Text="Projection" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                <WrapPanel>
+                    <Button Content="PC screen only" Command="{Binding ProjectCommand}" CommandParameter="PcScreenOnly" Margin="0,0,8,8" />
+                    <Button Content="Duplicate" Command="{Binding ProjectCommand}" CommandParameter="Duplicate" Margin="0,0,8,8" />
+                    <Button Content="Extend" Command="{Binding ProjectCommand}" CommandParameter="Extend" Margin="0,0,8,8" />
+                    <Button Content="Second screen only" Command="{Binding ProjectCommand}" CommandParameter="SecondScreenOnly" Margin="0,0,8,8" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
         <ItemsControl ItemsSource="{Binding Displays}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -30,6 +45,14 @@
                                 </StackPanel>
                                 <Button Content="Apply" Style="{StaticResource AccentButton}" Command="{Binding ApplyCommand}"
                                         VerticalAlignment="Bottom" Margin="0,0,0,12" />
+                            </WrapPanel>
+
+                            <WrapPanel Margin="0,0,0,4">
+                                <Button Content="Highest refresh rate" Command="{Binding RefreshPresetCommand}" CommandParameter="max" Margin="0,0,8,8" />
+                                <Button Content="Lowest refresh rate" Command="{Binding RefreshPresetCommand}" CommandParameter="min" Margin="0,0,8,8"
+                                        ToolTip="Saves battery on laptop screens" />
+                                <Button Content="Make this my main display" Command="{Binding MakePrimaryCommand}" Margin="0,0,8,8"
+                                        Visibility="{Binding CanMakePrimary, Converter={StaticResource Visible}}" />
                             </WrapPanel>
 
                             <WrapPanel Visibility="{Binding HasScale, Converter={StaticResource Visible}}">
