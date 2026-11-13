@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AiO.Core.Asus;
 using AiO.Core.Color;
+using AiO.Core.Display;
 using AiO.Core.Gpu;
 using AiO.Core.Keyboard;
 using AiO.Core.Mouse;
@@ -37,6 +38,8 @@ public sealed class GeneralSettings
     public bool ApplyOnStartup { get; set; } = true;
     /// <summary>Look for a newer AiO build in the background when AiO starts.</summary>
     public bool CheckForUpdates { get; set; } = true;
+    /// <summary>Show a small on-screen popup when a hotkey or power change switches something.</summary>
+    public bool ShowOsd { get; set; } = true;
 }
 
 public sealed class DisplayColorSettings
@@ -81,6 +84,15 @@ public sealed class AsusModeProfile
     public int GpuTempTarget { get; set; } = 87;
 }
 
+/// <summary>What to switch to on one power source. Null fields are left alone.</summary>
+public sealed class AsusPowerProfile
+{
+    public AsusPerformanceMode? Mode { get; set; }
+    /// <summary>Only Eco or Standard: Ultimate needs a restart, so it's never switched automatically.</summary>
+    public AsusGpuMode? Gpu { get; set; }
+    public RefreshChoice? Refresh { get; set; }
+}
+
 public sealed class AsusSettings
 {
     public AsusPerformanceMode PerformanceMode { get; set; } = AsusPerformanceMode.Balanced;
@@ -101,6 +113,15 @@ public sealed class AsusSettings
     public string AuraColor2 { get; set; } = "#0000FF";
     public AuraSpeed AuraSpeed { get; set; } = AuraSpeed.Normal;
     public int KeyboardBrightness { get; set; } = 3;
+
+    /// <summary>Apply <see cref="OnAc"/> / <see cref="OnBattery"/> when the charger is plugged in or pulled.</summary>
+    public bool AutoSwitch { get; set; }
+    public AsusPowerProfile OnAc { get; set; } = new() { Mode = AsusPerformanceMode.Balanced, Refresh = RefreshChoice.Highest };
+    public AsusPowerProfile OnBattery { get; set; } = new() { Mode = AsusPerformanceMode.Silent, Refresh = RefreshChoice.Lowest };
+
+    /// <summary>Seconds without input before the keyboard backlight turns off (0 = never).</summary>
+    public int BacklightTimeoutAc { get; set; }
+    public int BacklightTimeoutBattery { get; set; }
 
     /// <summary>Listen for the M-keys and Fn hotkeys.</summary>
     public bool HotkeysEnabled { get; set; } = true;

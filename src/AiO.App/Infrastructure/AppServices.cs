@@ -56,6 +56,16 @@ public sealed class AppServices : IDisposable
         StatusReported?.Invoke(message);
     }
 
+    /// <summary>Raised for <see cref="ShowOsd"/>: glyph (Segoe icon) and text.</summary>
+    public event Action<string, string>? OsdRequested;
+
+    /// <summary>Shows a short on-screen popup (if enabled) and puts the text in the status line.</summary>
+    public void ShowOsd(string glyph, string text)
+    {
+        Report(text);
+        if (Settings.Current.General.ShowOsd) OsdRequested?.Invoke(glyph, text);
+    }
+
     public void SaveSettings()
     {
         try { Settings.Save(); }

@@ -72,6 +72,9 @@
                                 Visibility="{Binding HasUnknownKey, Converter={StaticResource Visible}}" />
                     </StackPanel>
                 </Border>
+                <CheckBox Content="Show a popup when a key or the charger switches something"
+                          DataContext="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          IsChecked="{Binding ShowOsd}" Margin="0,0,0,10" />
                 <TextBlock Text="{Binding ServiceNote}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"
                            Visibility="{Binding ServiceNote, Converter={StaticResource Visible}}" />
 
@@ -182,6 +185,56 @@
                 </StackPanel>
                 <CheckBox Content="Panel overdrive (faster pixel response)" IsChecked="{Binding Overdrive}"
                           Visibility="{Binding SupportsOverdrive, Converter={StaticResource Visible}}" />
+                <StackPanel DataContext="{Binding Automation}" Margin="0,14,0,0"
+                            Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+                    <TextBlock Text="{Binding RefreshText}" Margin="0,0,0,6" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="60 Hz" Command="{Binding SetRefreshCommand}" CommandParameter="Lowest" Margin="0,0,6,0" />
+                        <Button Content="Highest refresh rate" Command="{Binding SetRefreshCommand}" CommandParameter="Highest" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Plugged in / on battery -->
+        <Border Style="{StaticResource Card}" DataContext="{Binding Automation}"
+                Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE83E;" Title="Plugged in and on battery"
+                              Subtitle="Switch performance mode, GPU and screen refresh rate automatically when you plug in or unplug the charger.">
+                    <CheckBox Content="On" IsChecked="{Binding AutoSwitch}" />
+                </c:CardHeader>
+                <TextBlock Text="{Binding PowerSourceText}" Style="{StaticResource Muted}" Margin="0,0,0,10" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Column="1" Text="Plugged in" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <TextBlock Grid.Column="3" Text="On battery" FontWeight="SemiBold" Margin="0,0,0,6" />
+
+                    <TextBlock Grid.Row="1" Text="Mode" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" DataContext="{Binding AcProfile}" ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding Mode}" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="1" Grid.Column="3" DataContext="{Binding BatteryProfile}" ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding Mode}" Margin="0,0,0,8" />
+
+                    <TextBlock Grid.Row="2" Text="GPU" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" DataContext="{Binding AcProfile}" ItemsSource="{Binding GpuOptions}" SelectedItem="{Binding Gpu}" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="2" Grid.Column="3" DataContext="{Binding BatteryProfile}" ItemsSource="{Binding GpuOptions}" SelectedItem="{Binding Gpu}" Margin="0,0,0,8" />
+
+                    <TextBlock Grid.Row="3" Text="Screen" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="3" Grid.Column="1" DataContext="{Binding AcProfile}" ItemsSource="{Binding RefreshOptions}" SelectedItem="{Binding Refresh}" />
+                    <ComboBox Grid.Row="3" Grid.Column="3" DataContext="{Binding BatteryProfile}" ItemsSource="{Binding RefreshOptions}" SelectedItem="{Binding Refresh}" />
+                </Grid>
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Text="GPU switching only moves between Eco and Standard; Ultimate needs a restart, so it's never changed automatically. Close games and apps using the dedicated GPU before unplugging if you use Eco on battery." />
             </StackPanel>
         </Border>
 
@@ -190,6 +243,17 @@
             <StackPanel>
                 <c:CardHeader Glyph="&#xE765;" Title="Keyboard backlight" />
                 <c:SliderRow Label="Brightness" Minimum="0" Maximum="3" Format="{}{0:0}" Value="{Binding KeyboardBrightness}" />
+                <WrapPanel DataContext="{Binding Automation}" Margin="0,8,0,0"
+                           Visibility="{Binding DataContext.Automation, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}}">
+                    <StackPanel Margin="0,0,16,6">
+                        <TextBlock Text="Turn off when idle, plugged in" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding TimeoutOptions}" SelectedItem="{Binding BacklightTimeoutAc}" Width="160" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,16,6">
+                        <TextBlock Text="Turn off when idle, on battery" Style="{StaticResource Label}" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding TimeoutOptions}" SelectedItem="{Binding BacklightTimeoutBattery}" Width="160" />
+                    </StackPanel>
+                </WrapPanel>
                 <WrapPanel Visibility="{Binding AuraAvailable, Converter={StaticResource Visible}}" Margin="0,8,0,0">
                     <StackPanel Margin="0,0,16,10">
                         <TextBlock Text="Effect" Style="{StaticResource Label}" Margin="0,0,0,4" />
