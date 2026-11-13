@@ -31,6 +31,27 @@ jobs:
           if (-not $writer) { throw "writer.exe not found in $($zip.Name)" }
           Copy-Item $writer.DirectoryName -Destination publish/RawAccel -Recurse
           Get-ChildItem publish/RawAccel -Recurse | Select-Object -ExpandProperty FullName
+      - name: Include PawnIO's RyzenSMU module (LGPL-2.1, for the Danger zone undervolt)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Signed module from https://github.com/namazso/PawnIO.Modules releases. The PawnIO driver itself
+          # is installed by the user from https://pawnio.eu. A missing module only disables undervolting.
+          try {
+            gh release download --repo namazso/PawnIO.Modules --pattern "*" --dir pawnio
+            if ($LASTEXITCODE -ne 0) { throw "gh release download failed" }
+            Get-ChildItem pawnio -Filter *.zip | ForEach-Object { Expand-Archive $_.FullName -DestinationPath pawnio/x -Force }
+            $module = Get-ChildItem pawnio -Recurse -Filter RyzenSMU.bin | Select-Object -First 1
+            if (-not $module) { throw "RyzenSMU.bin not found in the release" }
+            New-Item -ItemType Directory -Force publish/PawnIO | Out-Null
+            Copy-Item $module.FullName publish/PawnIO/RyzenSMU.bin
+            Get-ChildItem pawnio -Recurse -Filter COPYING* | Select-Object -First 1 | Copy-Item -Destination publish/PawnIO/COPYING.txt
+            Get-ChildItem publish/PawnIO
+          } catch {
+            Write-Warning "PawnIO module not included: $_"
+          }
+          exit 0
       - uses: actions/upload-artifact@v4
         with:
           name: AiO-win-x64

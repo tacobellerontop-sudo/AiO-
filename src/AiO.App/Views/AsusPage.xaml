@@ -122,8 +122,8 @@
         <!-- Fans and power -->
         <Border Style="{StaticResource Card}" Visibility="{Binding SupportsFanCurves, Converter={StaticResource Visible}}">
             <StackPanel>
-                <c:CardHeader Glyph="&#xE9CA;" Title="Fans and power"
-                              Subtitle="Each performance mode has its own fan curves and power limits. Drag the points to shape a curve." />
+                <c:CardHeader Glyph="&#xE9CA;" Title="Fans"
+                              Subtitle="Each performance mode has its own fan curves. Drag the points to shape a curve. Power limits are in the Danger zone below." />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <TextBlock Text="Editing" Style="{StaticResource Label}" />
                     <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding EditingMode}" Width="140" />
@@ -154,19 +154,6 @@
                     <Button Content="Load built-in curves" Command="{Binding LoadFirmwareCurvesCommand}" />
                 </StackPanel>
 
-                <StackPanel Visibility="{Binding SupportsPowerLimits, Converter={StaticResource Visible}}" Margin="0,22,0,0">
-                    <CheckBox Content="Use custom power limits in this mode" IsChecked="{Binding CustomPowerLimits}" />
-                    <c:SliderRow Label="CPU sustained (SPL)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SustainedWatts}" />
-                    <c:SliderRow Label="CPU slow boost (sPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SlowWatts}" />
-                    <c:SliderRow Label="CPU fast boost (fPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding FastWatts}" />
-                    <StackPanel Visibility="{Binding SupportsGpuPowerTuning, Converter={StaticResource Visible}}">
-                        <c:SliderRow Label="GPU dynamic boost" Minimum="5" Maximum="25" Format="{}{0:0} W" Value="{Binding GpuDynamicBoost}" />
-                        <c:SliderRow Label="GPU temp target" Minimum="75" Maximum="87" Format="{}{0:0} °C" Value="{Binding GpuTempTarget}" />
-                    </StackPanel>
-                    <TextBlock Style="{StaticResource Warning}" Margin="0,6,0,10"
-                               Text="Limits above what your laptop's cooling can handle cause throttling, not extra speed. The firmware clamps out-of-range values." />
-                    <Button Content="Apply power limits" Style="{StaticResource AccentButton}" Command="{Binding ApplyPowerCommand}" HorizontalAlignment="Left" />
-                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -299,6 +286,62 @@
                 </WrapPanel>
                 <Button Content="Apply keyboard" Style="{StaticResource AccentButton}" Command="{Binding ApplyKeyboardCommand}"
                         HorizontalAlignment="Left" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Danger zone -->
+        <Border Style="{StaticResource Card}" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1.5">
+            <StackPanel>
+                <c:CardHeader Glyph="&#xE7BA;" Title="Danger zone"
+                              Subtitle="Settings that can freeze, crash or overheat the laptop if set wrong. Change one thing at a time and test before going further." />
+                <CheckBox IsChecked="{Binding DangerZoneUnlocked}">
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" FontWeight="SemiBold"
+                               Text="I understand these can make my laptop unstable, and that I use them at my own risk." />
+                </CheckBox>
+
+                <StackPanel Visibility="{Binding DangerZoneUnlocked, Converter={StaticResource Visible}}" Margin="0,8,0,0">
+                    <!-- CPU undervolt -->
+                    <TextBlock Text="CPU undervolt (Ryzen Curve Optimizer)" FontWeight="SemiBold" Margin="0,8,0,4" />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="A negative offset lowers CPU voltage: cooler and quieter at the same speed, until it's too far and the PC freezes or reboots. Start around -10 and go down in steps of 5." />
+                    <TextBlock Text="{Binding RyzenStatus}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <WrapPanel Margin="0,0,0,8">
+                        <Button Content="Install the PawnIO driver" Command="{Binding InstallPawnIoCommand}" Margin="0,0,8,4"
+                                Visibility="{Binding PawnIoMissing, Converter={StaticResource Visible}}" />
+                        <Button Content="Restart AiO as administrator" Command="{Binding RestartAsAdminCommand}" Margin="0,0,8,4"
+                                Visibility="{Binding NeedsAdmin, Converter={StaticResource Visible}}" />
+                    </WrapPanel>
+                    <c:SliderRow Label="Curve Optimizer (all cores)" Minimum="-40" Maximum="0" Format="{}{0:0}" Value="{Binding CurveOffset}" />
+                    <CheckBox Content="Limit CPU temperature" IsChecked="{Binding UseTempLimit}" Margin="0,8,0,0" />
+                    <c:SliderRow Label="CPU temperature limit" Minimum="70" Maximum="100" Format="{}{0:0} °C" Value="{Binding TempLimit}"
+                                 Visibility="{Binding UseTempLimit, Converter={StaticResource Visible}}" />
+                    <CheckBox Content="Re-apply at start-up and after sleep" IsChecked="{Binding RyzenApplyAutomatically}" Margin="0,8,0,0" />
+                    <TextBlock Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,8"
+                               Text="Leave this off until a setting has survived a few hours of normal use. If AiO starts after a crash that happened within two minutes of applying, it skips the undervolt and turns this off. A restart always clears the undervolt." />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Apply undervolt" Style="{StaticResource AccentButton}" Command="{Binding ApplyRyzenCommand}" Margin="0,0,8,0" />
+                        <Button Content="Reset to stock" Command="{Binding ResetRyzenCommand}" />
+                    </StackPanel>
+
+                <StackPanel Visibility="{Binding SupportsPowerLimits, Converter={StaticResource Visible}}" Margin="0,16,0,0">
+                    <TextBlock Text="CPU and GPU power limits" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Editing" Style="{StaticResource Label}" />
+                        <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding EditingMode}" Width="140" />
+                    </StackPanel>
+                    <CheckBox Content="Use custom power limits in this mode" IsChecked="{Binding CustomPowerLimits}" />
+                    <c:SliderRow Label="CPU sustained (SPL)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SustainedWatts}" />
+                    <c:SliderRow Label="CPU slow boost (sPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding SlowWatts}" />
+                    <c:SliderRow Label="CPU fast boost (fPPT)" Minimum="5" Maximum="150" Format="{}{0:0} W" Value="{Binding FastWatts}" />
+                    <StackPanel Visibility="{Binding SupportsGpuPowerTuning, Converter={StaticResource Visible}}">
+                        <c:SliderRow Label="GPU dynamic boost" Minimum="5" Maximum="25" Format="{}{0:0} W" Value="{Binding GpuDynamicBoost}" />
+                        <c:SliderRow Label="GPU temp target" Minimum="75" Maximum="87" Format="{}{0:0} °C" Value="{Binding GpuTempTarget}" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Warning}" Margin="0,6,0,10"
+                               Text="Limits above what your laptop's cooling can handle cause throttling, not extra speed. The firmware clamps out-of-range values." />
+                    <Button Content="Apply power limits" Style="{StaticResource AccentButton}" Command="{Binding ApplyPowerCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+                </StackPanel>
             </StackPanel>
         </Border>
     </StackPanel>
