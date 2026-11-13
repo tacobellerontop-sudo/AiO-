@@ -84,6 +84,22 @@ public sealed class AsusModeProfile
     public int GpuTempTarget { get; set; } = 87;
 }
 
+/// <summary>Ryzen CPU undervolting (Curve Optimizer) and temperature limit, applied through PawnIO.</summary>
+public sealed class RyzenTuningSettings
+{
+    /// <summary>All-core Curve Optimizer offset, -40..0 (0 = stock).</summary>
+    public int CurveOffset { get; set; }
+    /// <summary>CPU temperature limit in °C; null = leave the firmware's.</summary>
+    public int? TempLimit { get; set; }
+    /// <summary>Re-apply at start-up and after sleep (the CPU forgets these on every reboot and sleep).</summary>
+    public bool ApplyAutomatically { get; set; }
+    /// <summary>
+    /// Set while an automatic apply is being tested; cleared once AiO has run for two minutes after it.
+    /// If AiO starts and finds it still set, the previous apply probably crashed the PC, so it skips auto-apply.
+    /// </summary>
+    public DateTime? AutoApplyPendingSince { get; set; }
+}
+
 /// <summary>Slash lid lighting (Zephyrus G14 2024+, G16).</summary>
 public sealed class SlashSettings
 {
@@ -139,6 +155,10 @@ public sealed class AsusSettings
     public int BacklightTimeoutBattery { get; set; }
 
     public SlashSettings Slash { get; set; } = new();
+
+    /// <summary>The user ticked "I understand" on the Danger zone card.</summary>
+    public bool DangerZoneUnlocked { get; set; }
+    public RyzenTuningSettings Ryzen { get; set; } = new();
 
     /// <summary>Listen for the M-keys and Fn hotkeys.</summary>
     public bool HotkeysEnabled { get; set; } = true;

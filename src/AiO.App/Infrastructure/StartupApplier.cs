@@ -19,6 +19,8 @@ public static class StartupApplier
         if (services.Asus is { } asus) Try("ASUS", () => ApplyAsus(asus, settings.Asus));
         if (settings.Asus.ManageKeyboard) Try("ASUS keyboard", () => ApplyAura(settings.Asus, services.Asus));
         if (settings.Asus.Slash.Manage) Try("Slash lighting", () => ApplySlash(settings.Asus.Slash));
+        // Off the UI thread: opening the driver and the SMU mailbox take a moment.
+        Task.Run(() => Try("CPU undervolt", () => RyzenTuning.ApplyAtStartup(services)));
         if (settings.Mouse.ReapplyRawAccelOnStartup && RawAccel.PackageFolder is not null)
         {
             // The driver's writer takes about a second; don't hold up start-up for it.
