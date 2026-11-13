@@ -39,7 +39,8 @@ jobs:
           # Signed module from https://github.com/namazso/PawnIO.Modules releases. The PawnIO driver itself
           # is installed by the user from https://pawnio.eu. A missing module only disables undervolting.
           try {
-            gh release download --repo namazso/PawnIO.Modules --dir pawnio
+            gh release download --repo namazso/PawnIO.Modules --pattern "*" --dir pawnio
+            if ($LASTEXITCODE -ne 0) { throw "gh release download failed" }
             Get-ChildItem pawnio -Filter *.zip | ForEach-Object { Expand-Archive $_.FullName -DestinationPath pawnio/x -Force }
             $module = Get-ChildItem pawnio -Recurse -Filter RyzenSMU.bin | Select-Object -First 1
             if (-not $module) { throw "RyzenSMU.bin not found in the release" }
@@ -50,6 +51,7 @@ jobs:
           } catch {
             Write-Warning "PawnIO module not included: $_"
           }
+          exit 0
       - uses: actions/upload-artifact@v4
         with:
           name: AiO-win-x64
