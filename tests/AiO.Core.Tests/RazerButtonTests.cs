@@ -95,4 +95,32 @@ public class RazerButtonTests
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Equal(RazerButton.LeftId, ids[0]);
     }
+
+    [Fact]
+    public void Shift_and_alt_use_the_right_hand_bits_the_firmware_plays()
+    {
+        var action = RazerButtonAction.Key(0x04, RazerModifiers.Ctrl | RazerModifiers.Shift | RazerModifiers.Alt);
+        Assert.Equal((byte)0x61, action.Value(0));
+        Assert.Equal("Ctrl+Shift+Alt+A", action.Describe());
+        // Left-hand bits read from a mouse still describe as Shift/Alt.
+        Assert.Equal("Shift+Alt+A", RazerKeys.Describe(0x04, RazerModifiers.LeftShift | RazerModifiers.LeftAlt));
+    }
+
+    [Fact]
+    public void Device_mode_commands()
+    {
+        Assert.Equal("0200" + "84", Hex(RazerCommands.GetDeviceMode().ToBytes(), 5, 3));
+        var set = RazerCommands.SetDeviceMode(RazerCommands.ModeNormal).ToBytes();
+        Assert.Equal("020004" + "0000", Hex(set, 5, 5));
+    }
+
+    [Fact]
+    public void Empty_records_and_unnamed_buttons()
+    {
+        Assert.True(RazerButtonAction.FromHex("00000000000000").IsEmpty);
+        Assert.False(RazerButtonAction.Disabled().IsEmpty);
+        Assert.True(new RazerButton(0x0F, "Button 0x0F").IsUnnamed);
+        Assert.False(RazerButton.Candidates[1].IsUnnamed);
+        Assert.Throws<ArgumentException>(() => RazerButtonCommands.Set(0x60, RazerButtonLayer.Standard, RazerButtonAction.Disabled()));
+    }
 }

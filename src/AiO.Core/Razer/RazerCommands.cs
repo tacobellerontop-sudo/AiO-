@@ -47,6 +47,20 @@ public static class RazerCommands
 
     public static RazerReport GetSerial() => new(0x00, 0x82, 0x16);
 
+    /// <summary>Device mode: 0x00 normal (onboard settings active), 0x03 driver (Synapse handles the buttons).</summary>
+    public static RazerReport GetDeviceMode() => new(0x00, 0x84, 0x02);
+
+    public const byte ModeNormal = 0x00;
+    public const byte ModeDriver = 0x03;
+
+    public static RazerReport SetDeviceMode(byte mode)
+    {
+        var r = new RazerReport(0x00, 0x04, 0x02);
+        r.Arguments[0] = mode;
+        r.Arguments[1] = 0x00;
+        return r;
+    }
+
     public static RazerReport GetDpi()
     {
         var r = new RazerReport(0x04, 0x85, 0x07);

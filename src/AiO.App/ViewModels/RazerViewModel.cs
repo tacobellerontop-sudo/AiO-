@@ -213,6 +213,10 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
     public ObservableCollection<RazerButtonRowViewModel> Buttons { get; } = [];
     public bool HasButtons => Buttons.Count > 0 || ButtonLayer != RazerButtonLayer.Standard;
     public bool NoButtonsOnLayer => Buttons.Count == 0;
+    public IEnumerable<RazerButtonRowViewModel> DiagramButtons => Buttons.Where(b => b.OnDiagram);
+    public IEnumerable<RazerButtonRowViewModel> OtherButtons => Buttons.Where(b => !b.OnDiagram);
+    public bool HasOtherButtons => Buttons.Any(b => !b.OnDiagram);
+    public bool ButtonsLoading { get => _buttonsBusy; private set => Set(ref _buttonsBusy, value); }
     public IReadOnlyList<RazerButtonLayer> ButtonLayers { get; } = [RazerButtonLayer.Standard, RazerButtonLayer.Hypershift];
     public ICommand SaveButtonsCommand { get; }
     public ICommand RestoreButtonsCommand { get; }
@@ -228,7 +232,7 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
     private async Task LoadButtonsAsync()
     {
         if (_buttonsBusy) return;
-        _buttonsBusy = true;
+        ButtonsLoading = true;
         try
         {
             var layer = ButtonLayer;
@@ -237,10 +241,13 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
             foreach (var (button, action) in read) Buttons.Add(new RazerButtonRowViewModel(button, action));
             OnPropertyChanged(nameof(HasButtons));
             OnPropertyChanged(nameof(NoButtonsOnLayer));
+            OnPropertyChanged(nameof(DiagramButtons));
+            OnPropertyChanged(nameof(OtherButtons));
+            OnPropertyChanged(nameof(HasOtherButtons));
         }
         finally
         {
-            _buttonsBusy = false;
+            ButtonsLoading = false;
         }
     }
 
