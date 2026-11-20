@@ -206,6 +206,11 @@ public sealed class RazerDeviceSettings
     public bool LightingSet { get; set; }
     /// <summary>Send the saved DPI, polling rate and lighting when AiO starts (useful for devices without onboard memory).</summary>
     public bool RestoreOnStartup { get; set; }
+    /// <summary>
+    /// Each button's function as it was before AiO first changed it, keyed "layer:buttonId" (hex),
+    /// value = the 7-byte action block in hex. Used by "Restore original buttons".
+    /// </summary>
+    public Dictionary<string, string> ButtonBackups { get; set; } = new();
 }
 
 public sealed class RazerOptions

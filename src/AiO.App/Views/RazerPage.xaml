@@ -64,6 +64,48 @@
                                 </StackPanel>
                             </StackPanel>
 
+                            <!-- Buttons -->
+                            <StackPanel Visibility="{Binding HasButtons, Converter={StaticResource Visible}}" Margin="0,8,0,10">
+                                <DockPanel Margin="0,0,0,4">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <TextBlock Text="Layer" Style="{StaticResource Label}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <ComboBox ItemsSource="{Binding ButtonLayers}" SelectedItem="{Binding ButtonLayer}" Width="120"
+                                                  ToolTip="Hypershift: what the buttons do while a button set to Hypershift is held" />
+                                    </StackPanel>
+                                    <TextBlock Text="Buttons" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                           Text="Saved to the mouse itself, so it keeps working without AiO, on any PC, wired or through its HyperSpeed dongle. Left click is locked so you can't lose it." />
+                                <TextBlock Style="{StaticResource Muted}" Text="This layer has no buttons the mouse reports." Margin="0,0,0,8"
+                                           Visibility="{Binding NoButtonsOnLayer, Converter={StaticResource Visible}}" />
+                                <ItemsControl ItemsSource="{Binding Buttons}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6" ToolTip="{Binding CurrentText}">
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource Label}" Width="150" VerticalAlignment="Center" />
+                                                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" Width="230"
+                                                          IsEnabled="{Binding Editable}" />
+                                                <StackPanel Orientation="Horizontal" Margin="8,0,0,0"
+                                                            Visibility="{Binding IsKeyboard, Converter={StaticResource Visible}}">
+                                                    <CheckBox Content="Ctrl" IsChecked="{Binding Ctrl}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                    <CheckBox Content="Shift" IsChecked="{Binding Shift}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                    <CheckBox Content="Alt" IsChecked="{Binding Alt}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                    <CheckBox Content="Win" IsChecked="{Binding Win}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                    <ComboBox ItemsSource="{Binding Keys}" SelectedItem="{Binding Key}" Width="120" />
+                                                </StackPanel>
+                                                <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                           ToolTip="Changed, not saved yet" Visibility="{Binding IsChanged, Converter={StaticResource Visible}}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Margin="150,6,0,0">
+                                    <Button Content="Save buttons" Style="{StaticResource AccentButton}" Command="{Binding SaveButtonsCommand}" Margin="0,0,8,0" />
+                                    <Button Content="Restore original buttons" Command="{Binding RestoreButtonsCommand}"
+                                            ToolTip="Puts back what each button did before AiO changed it" />
+                                </StackPanel>
+                            </StackPanel>
+
                             <!-- Power -->
                             <StackPanel Visibility="{Binding HasPower, Converter={StaticResource Visible}}" Margin="0,8,0,10">
                                 <TextBlock Text="Power" FontWeight="SemiBold" Margin="0,0,0,6" />

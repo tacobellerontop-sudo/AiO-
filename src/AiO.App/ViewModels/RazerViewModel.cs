@@ -118,6 +118,8 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
         RefreshBatteryCommand = new AsyncCommand(RefreshBatteryAsync);
         StageUpCommand = new RelayCommand(() => StepStage(+1), () => DpiStages.Count > 1);
         StageDownCommand = new RelayCommand(() => StepStage(-1), () => DpiStages.Count > 1);
+        SaveButtonsCommand = new AsyncCommand(SaveButtonsAsync);
+        RestoreButtonsCommand = new AsyncCommand(RestoreButtonsAsync);
     }
 
     public ICommand LightsOffCommand { get; }
@@ -201,6 +203,123 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
         var stages = DpiStages.Select(s => (int)s.Dpi).ToList();
         int active = ActiveStage;
         return Run(() => _device.SetDpiStages(stages, active), $"{stages.Count} DPI stages saved to {Name}.", () => { });
+    }
+
+    // ---- Buttons (onboard remapping) -------------------------------------------------
+
+    private RazerButtonLayer _buttonLayer = RazerButtonLayer.Standard;
+    private bool _buttonsBusy;
+
+    public ObservableCollection<RazerButtonRowViewModel> Buttons { get; } = [];
+    public bool HasButtons => Buttons.Count > 0 || ButtonLayer != RazerButtonLayer.Standard;
+    public bool NoButtonsOnLayer => Buttons.Count == 0;
+    public IReadOnlyList<RazerButtonLayer> ButtonLayers { get; } = [RazerButtonLayer.Standard, RazerButtonLayer.Hypershift];
+    public ICommand SaveButtonsCommand { get; }
+    public ICommand RestoreButtonsCommand { get; }
+
+    public RazerButtonLayer ButtonLayer
+    {
+        get => _buttonLayer;
+        set { if (Set(ref _buttonLayer, value) && _loaded) _ = LoadButtonsAsync(); }
+    }
+
+    private static string BackupKey(RazerButtonLayer layer, byte id) => $"{(byte)layer:X2}:{id:X2}";
+
+    private async Task LoadButtonsAsync()
+    {
+        if (_buttonsBusy) return;
+        _buttonsBusy = true;
+        try
+        {
+            var layer = ButtonLayer;
+            var read = await Task.Run(() => _device.ReadButtons(layer));
+            Buttons.Clear();
+            foreach (var (button, action) in read) Buttons.Add(new RazerButtonRowViewModel(button, action));
+            OnPropertyChanged(nameof(HasButtons));
+            OnPropertyChanged(nameof(NoButtonsOnLayer));
+        }
+        finally
+        {
+            _buttonsBusy = false;
+        }
+    }
+
+    private async Task SaveButtonsAsync()
+    {
+        var layer = ButtonLayer;
+        var changed = Buttons.Where(b => b.IsChanged).Select(b => (Row: b, Action: b.Chosen)).ToList();
+        if (changed.Count == 0)
+        {
+            AppServices.Instance.Report("No button changes to save.");
+            return;
+        }
+
+        int ok = 0;
+        string? error = null;
+        foreach (var (row, action) in changed)
+        {
+            // Keep the very first function each button had, so it can always be put back.
+            string key = BackupKey(layer, row.Button.Id);
+            if (!_saved.ButtonBackups.ContainsKey(key)) _saved.ButtonBackups[key] = row.Current.ToHex();
+            try
+            {
+                await Task.Run(() => _device.SetButton(row.Button.Id, layer, action));
+                row.MarkSaved(action);
+                ok++;
+            }
+            catch (Exception ex) when (ex is RazerCommandException or System.ComponentModel.Win32Exception or ArgumentException)
+            {
+                error = $"{row.Name}: {ex.Message}";
+            }
+        }
+        AppServices.Instance.SaveSettings();
+        AppServices.Instance.Report(error is null
+            ? $"{ok} button{(ok == 1 ? "" : "s")} saved to {Name}."
+            : $"Razer: {ok} of {changed.Count} buttons saved. {error}. If it's wireless, move the mouse to wake it and try again.");
+    }
+
+    /// <summary>Puts back each button's function from before AiO changed it (or the factory function for the main buttons).</summary>
+    private async Task RestoreButtonsAsync()
+    {
+        var layer = ButtonLayer;
+        var plan = new List<(RazerButtonRowViewModel Row, RazerButtonAction Action, string? Key)>();
+        foreach (var row in Buttons.Where(b => !b.Locked))
+        {
+            string key = BackupKey(layer, row.Button.Id);
+            RazerButtonAction? target = null;
+            if (_saved.ButtonBackups.TryGetValue(key, out var hex))
+            {
+                try { target = RazerButtonAction.FromHex(hex); }
+                catch (FormatException) { }
+            }
+            if (target is null && layer == RazerButtonLayer.Standard) target = RazerButtonCommands.FactoryDefault(row.Button.Id);
+            if (target is not null && !target.SameAs(row.Current)) plan.Add((row, target, key));
+        }
+        if (plan.Count == 0)
+        {
+            AppServices.Instance.Report("Buttons already have their original functions.");
+            return;
+        }
+
+        int ok = 0;
+        string? error = null;
+        foreach (var (row, action, key) in plan)
+        {
+            try
+            {
+                await Task.Run(() => _device.SetButton(row.Button.Id, layer, action));
+                row.MarkSaved(action);
+                if (key is not null) _saved.ButtonBackups.Remove(key);
+                ok++;
+            }
+            catch (Exception ex) when (ex is RazerCommandException or System.ComponentModel.Win32Exception)
+            {
+                error = $"{row.Name}: {ex.Message}";
+            }
+        }
+        AppServices.Instance.SaveSettings();
+        await LoadButtonsAsync();
+        AppServices.Instance.Report(error is null ? $"{ok} button{(ok == 1 ? "" : "s")} restored on {Name}." : $"Razer: {ok} of {plan.Count} restored. {error}.");
     }
 
     // ---- Power (wireless) ---------------------------------------------------------
@@ -303,6 +422,7 @@ public sealed class RazerDeviceViewModel : ObservableObject, IDisposable
         if (info.LowBattery is int low and > 0) { LowBattery = low; HasLowBattery = true; }
         OnPropertyChanged(nameof(HasPower));
         OnPropertyChanged(nameof(Details));
+        if (IsMouse) await LoadButtonsAsync();
         _loaded = true;
     }
 
