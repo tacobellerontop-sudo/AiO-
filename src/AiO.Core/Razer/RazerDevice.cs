@@ -29,11 +29,14 @@ public sealed class RazerCommandException(string message) : Exception(message);
 public sealed class RazerDevice : IDisposable
 {
     // Different device generations expect different transaction ids; we probe these in order.
+    // HyperSpeed receivers mostly answer on 0x1F; 0x10 is used by some Viper dongles for button commands.
     private static readonly byte[] TransactionIdCandidates = [0x1F, 0x3F, 0xFF, 0x08];
+    private static readonly byte[] ButtonTransactionIdCandidates = [0x1F, 0x3F, 0xFF, 0x08, 0x10];
 
     private readonly HidConnection _connection;
     private readonly object _lock = new();
     private byte _transactionId;
+    private byte? _buttonTransactionId;
 
     public ushort ProductId => _connection.Info.ProductId;
     public string Name { get; }
@@ -96,11 +99,13 @@ public sealed class RazerDevice : IDisposable
     }
 
     /// <summary>Sends a command and returns the device's response; throws unless it reports success.</summary>
-    public RazerReport Send(RazerReport request)
+    public RazerReport Send(RazerReport request) => Send(request, _transactionId);
+
+    private RazerReport Send(RazerReport request, byte transactionId)
     {
         lock (_lock)
         {
-            request.TransactionId = _transactionId;
+            request.TransactionId = transactionId;
             _connection.SetFeature(request.ToFeatureReport());
 
             var buffer = new byte[RazerReport.Size + 1];
@@ -217,6 +222,71 @@ public sealed class RazerDevice : IDisposable
         RazerDeviceType.Mouse => [RazerLed.Zero, RazerLed.Logo, RazerLed.ScrollWheel, RazerLed.Backlight],
         _ => [RazerLed.Zero, RazerLed.Backlight, RazerLed.Logo],
     };
+
+    // ---- Button assignment (onboard) ----------------------------------------------------
+
+    /// <summary>
+    /// Sends a button-assignment command. A HyperSpeed receiver can want a different transaction id for
+    /// this command class than the one that answered the firmware probe, so on the first failure each
+    /// candidate is tried and the one that works is remembered.
+    /// </summary>
+    private RazerReport SendButtonCommand(RazerReport request)
+    {
+        if (_buttonTransactionId is byte known) return Send(request, known);
+
+        RazerCommandException? last = null;
+        foreach (byte id in ButtonTransactionIdCandidates.Prepend(_transactionId).Distinct())
+        {
+            try
+            {
+                var response = Send(request, id);
+                _buttonTransactionId = id;
+                return response;
+            }
+            catch (RazerCommandException ex) { last = ex; }
+        }
+        throw last ?? new RazerCommandException("No answer to the button command");
+    }
+
+    /// <summary>The function a button has now, or null if the device has no such button.</summary>
+    public RazerButtonAction? GetButton(byte button, RazerButtonLayer layer)
+    {
+        try { return RazerButtonCommands.Parse(SendButtonCommand(RazerButtonCommands.Get(button, layer)), button); }
+        catch (RazerCommandException) { return null; }
+        catch (System.ComponentModel.Win32Exception) { return null; }
+    }
+
+    /// <summary>Buttons this mouse answers for, with their current function on <paramref name="layer"/>.</summary>
+    public IReadOnlyList<(RazerButton Button, RazerButtonAction Action)> ReadButtons(RazerButtonLayer layer)
+    {
+        if (Type is not (RazerDeviceType.Mouse or RazerDeviceType.Unknown)) return [];
+        // Ask about left click first: if it doesn't answer, the mouse doesn't support the command at all.
+        if (GetButton(RazerButton.LeftId, layer) is not { } left) return [];
+
+        var found = new List<(RazerButton, RazerButtonAction)> { (RazerButton.Candidates[0], left) };
+        foreach (var button in RazerButton.Candidates.Skip(1))
+            if (GetButton(button.Id, layer) is { } action) found.Add((button, action));
+        return found;
+    }
+
+    /// <summary>
+    /// Writes a button's function to the mouse's onboard memory and reads it back. If the read-back
+    /// doesn't match, the previous function is written back and an exception is thrown.
+    /// </summary>
+    public void SetButton(byte button, RazerButtonLayer layer, RazerButtonAction action)
+    {
+        var before = GetButton(button, layer);
+        SendButtonCommand(RazerButtonCommands.Set(button, layer, action));
+        var after = GetButton(button, layer);
+        if (after is not null && after.SameAs(action)) return;
+
+        if (before is not null)
+        {
+            try { SendButtonCommand(RazerButtonCommands.Set(button, layer, before)); }
+            catch (RazerCommandException) { }
+        }
+        throw new RazerCommandException($"{RazerButton.NameOf(button)} didn't keep the new function, so it was put back");
+    }
 
     public void Dispose() => _connection.Dispose();
 }
