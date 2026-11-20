@@ -30,15 +30,23 @@ public enum RazerMouseFunction : byte
     ScrollDown = 0x0A,
 }
 
-/// <summary>Keyboard modifier bits for a <see cref="RazerActionKind.Keyboard"/> action (USB HID modifier byte).</summary>
+/// <summary>
+/// Keyboard modifier bits for a <see cref="RazerActionKind.Keyboard"/> action (USB HID modifier byte).
+/// Razer firmware never plays the left Shift (0x02) or left Alt (0x04) bit, so Shift and Alt use the
+/// right-hand keys (0x20, 0x40), as Sidearm found on hardware. The left bits are still recognised when read.
+/// </summary>
 [Flags]
 public enum RazerModifiers : byte
 {
     None = 0,
     Ctrl = 0x01,
-    Shift = 0x02,
-    Alt = 0x04,
+    LeftShift = 0x02,
+    LeftAlt = 0x04,
     Win = 0x08,
+    RightCtrl = 0x10,
+    Shift = 0x20,
+    Alt = 0x40,
+    RightWin = 0x80,
 }
 
 /// <summary>A physical button the mouse may have, by its id in the button-assignment command.</summary>
@@ -79,6 +87,15 @@ public sealed record RazerButton(byte Id, string Name)
     }
 
     public static string NameOf(byte id) => Candidates.FirstOrDefault(b => b.Id == id)?.Name ?? $"Button 0x{id:X2}";
+
+    /// <summary>True for ids that aren't in <see cref="Candidates"/> (found by scanning; position unknown).</summary>
+    public bool IsUnnamed => Candidates.All(b => b.Id != Id);
+
+    /// <summary>Highest id AiO scans for buttons it has no name for (e.g. a Basilisk's thumb/clutch button).</summary>
+    public const byte ScanLimit = 0x7F;
+
+    /// <summary>Ids Razer notes say answer with unrelated data and must not be written (profile switching).</summary>
+    public static IReadOnlySet<byte> NeverTouch { get; } = new HashSet<byte> { 0x60 };
 }
 
 /// <summary>
@@ -134,6 +151,9 @@ public sealed record RazerButtonAction(byte Kind, byte Length, byte[] Values)
 
     public string ToHex() => Convert.ToHexString(ToBlock());
 
+    /// <summary>All seven bytes zero: what scanned ids without a physical button usually answer.</summary>
+    public bool IsEmpty => Kind == 0 && Length == 0 && Values.All(v => v == 0);
+
     public static RazerButtonAction FromHex(string hex) => FromBlock(Convert.FromHexString(hex));
 
     public string Describe() => KnownKind switch
@@ -172,6 +192,7 @@ public static class RazerButtonCommands
 
     public static RazerReport Set(byte button, RazerButtonLayer layer, RazerButtonAction action)
     {
+        if (RazerButton.NeverTouch.Contains(button)) throw new ArgumentException("This button id is reserved", nameof(button));
         if (button == RazerButton.LeftId && layer == RazerButtonLayer.Standard &&
             !(action.Kind == (byte)RazerActionKind.Mouse && action.Value(0) == (byte)RazerMouseFunction.LeftClick))
             throw new ArgumentException("Left click must stay left click", nameof(action));
@@ -251,10 +272,10 @@ public static class RazerKeys
     public static string Describe(byte usage, RazerModifiers mods)
     {
         var parts = new List<string>();
-        if (mods.HasFlag(RazerModifiers.Ctrl)) parts.Add("Ctrl");
-        if (mods.HasFlag(RazerModifiers.Shift)) parts.Add("Shift");
-        if (mods.HasFlag(RazerModifiers.Alt)) parts.Add("Alt");
-        if (mods.HasFlag(RazerModifiers.Win)) parts.Add("Win");
+        if ((mods & (RazerModifiers.Ctrl | RazerModifiers.RightCtrl)) != 0) parts.Add("Ctrl");
+        if ((mods & (RazerModifiers.Shift | RazerModifiers.LeftShift)) != 0) parts.Add("Shift");
+        if ((mods & (RazerModifiers.Alt | RazerModifiers.LeftAlt)) != 0) parts.Add("Alt");
+        if ((mods & (RazerModifiers.Win | RazerModifiers.RightWin)) != 0) parts.Add("Win");
         parts.Add(KeyName(usage));
         return string.Join("+", parts);
     }

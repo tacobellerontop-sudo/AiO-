@@ -256,7 +256,11 @@ public sealed class RazerDevice : IDisposable
         catch (System.ComponentModel.Win32Exception) { return null; }
     }
 
-    /// <summary>Buttons this mouse answers for, with their current function on <paramref name="layer"/>.</summary>
+    /// <summary>
+    /// Buttons this mouse answers for, with their current function on <paramref name="layer"/>.
+    /// Known ids come first; then every other id up to <see cref="RazerButton.ScanLimit"/> is asked, so
+    /// buttons AiO has no name for (thumb/clutch buttons on some models) still show up.
+    /// </summary>
     public IReadOnlyList<(RazerButton Button, RazerButtonAction Action)> ReadButtons(RazerButtonLayer layer)
     {
         if (Type is not (RazerDeviceType.Mouse or RazerDeviceType.Unknown)) return [];
@@ -266,7 +270,35 @@ public sealed class RazerDevice : IDisposable
         var found = new List<(RazerButton, RazerButtonAction)> { (RazerButton.Candidates[0], left) };
         foreach (var button in RazerButton.Candidates.Skip(1))
             if (GetButton(button.Id, layer) is { } action) found.Add((button, action));
+
+        var known = RazerButton.Candidates.Select(b => b.Id).ToHashSet();
+        for (int id = 1; id <= RazerButton.ScanLimit; id++)
+        {
+            byte scanId = (byte)id;
+            if (known.Contains(scanId) || RazerButton.NeverTouch.Contains(scanId)) continue;
+            if (GetButton(scanId, layer) is { IsEmpty: false } scanned)
+                found.Add((new RazerButton(scanId, $"Button 0x{scanId:X2}"), scanned));
+        }
         return found;
+    }
+
+    private bool _modeChecked;
+
+    /// <summary>
+    /// Onboard button functions only work in normal mode. Synapse leaves mice in driver mode, where the
+    /// mouse sends raw buttons and Synapse does the remapping, so AiO switches it back once.
+    /// </summary>
+    private void EnsureNormalMode()
+    {
+        if (_modeChecked) return;
+        _modeChecked = true;
+        try
+        {
+            var mode = Send(RazerCommands.GetDeviceMode()).Arguments[0];
+            if (mode != RazerCommands.ModeNormal) Send(RazerCommands.SetDeviceMode(RazerCommands.ModeNormal));
+        }
+        catch (RazerCommandException) { }
+        catch (System.ComponentModel.Win32Exception) { }
     }
 
     /// <summary>
@@ -275,6 +307,7 @@ public sealed class RazerDevice : IDisposable
     /// </summary>
     public void SetButton(byte button, RazerButtonLayer layer, RazerButtonAction action)
     {
+        EnsureNormalMode();
         var before = GetButton(button, layer);
         SendButtonCommand(RazerButtonCommands.Set(button, layer, action));
         var after = GetButton(button, layer);

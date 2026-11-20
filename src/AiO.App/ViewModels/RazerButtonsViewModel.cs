@@ -45,10 +45,10 @@ public sealed class RazerButtonRowViewModel : ObservableObject
             _selected = choices.First(c => c.IsKeyboard);
             _key = AllKeys.FirstOrDefault(k => k.Usage == current.Value(1)) ?? new KeyChoice(RazerKeys.KeyName(current.Value(1)), current.Value(1));
             var mods = (RazerModifiers)current.Value(0);
-            _ctrl = mods.HasFlag(RazerModifiers.Ctrl);
-            _shift = mods.HasFlag(RazerModifiers.Shift);
-            _alt = mods.HasFlag(RazerModifiers.Alt);
-            _win = mods.HasFlag(RazerModifiers.Win);
+            _ctrl = (mods & (RazerModifiers.Ctrl | RazerModifiers.RightCtrl)) != 0;
+            _shift = (mods & (RazerModifiers.Shift | RazerModifiers.LeftShift)) != 0;
+            _alt = (mods & (RazerModifiers.Alt | RazerModifiers.LeftAlt)) != 0;
+            _win = (mods & (RazerModifiers.Win | RazerModifiers.RightWin)) != 0;
         }
         else
         {
@@ -71,6 +71,30 @@ public sealed class RazerButtonRowViewModel : ObservableObject
 
     public RazerButton Button { get; }
     public string Name => Button.Name;
+
+    // Where the button sits on the top-down drawing (null: no known spot, listed in the table instead).
+    private static readonly Dictionary<byte, (int Side, double X, double Y)> Placements = new()
+    {
+        [0x01] = (0, 0.27, 0.16),
+        [0x02] = (1, 0.73, 0.16),
+        [0x09] = (1, 0.50, 0.14),
+        [0x03] = (1, 0.50, 0.215),
+        [0x0A] = (1, 0.50, 0.29),
+        [0x34] = (0, 0.44, 0.22),
+        [0x35] = (1, 0.56, 0.22),
+        [0x0B] = (1, 0.50, 0.36),
+        [0x0C] = (1, 0.50, 0.42),
+        [0x05] = (0, 0.05, 0.40),
+        [0x04] = (0, 0.05, 0.50),
+        [0x06] = (0, 0.05, 0.60),
+        [0x07] = (0, 0.05, 0.68),
+    };
+
+    public bool OnDiagram => Placements.ContainsKey(Button.Id);
+    public int Side => Placements.TryGetValue(Button.Id, out var p) ? p.Side : 0;
+    public double AnchorX => Placements.TryGetValue(Button.Id, out var p) ? p.X : 0.5;
+    public double AnchorY => Placements.TryGetValue(Button.Id, out var p) ? p.Y : 0.5;
+    public string IdText => $"id 0x{Button.Id:X2}";
     public bool Locked => Button.Locked;
     public bool Editable => !Locked;
     public RazerButtonAction Current { get; private set; }
